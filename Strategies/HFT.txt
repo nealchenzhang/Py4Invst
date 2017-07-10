@@ -1,0 +1,20 @@
+High-frequency traders
+(a) require a high-speed trading infrastructure,
+(b) have investment time horizons less than one day, and
+(c) generally try to end the day with no positions whatsoever.
+
+Categories:
+1) UHFTs - ultra-high-frequency traders,
+2) HFTs,
+3) MFTs -  medium-frequency traders, and
+4) Algorithmic execution engines.
+
+Trading Orders:
+a) Aggressive Orders:
+    Market Orders
+    Limit Order at best counter-party price
+b) Passive Orders:
+    Limit Orders that cannot be immediately filled
+
+Liquidity:
+    immediate availability of units to be transacted at a fair price
