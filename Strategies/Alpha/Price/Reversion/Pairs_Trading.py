@@ -21,27 +21,56 @@ import datetime as dt
 import matplotlib.pyplot as plt
 
 class PairsTrading(object):
-    def __init__(self, stock_lists, stock_data):
+    def __init__(self, stock_lists, stock_data, train_data, test_data):
         self.stock_lists = stock_lists
         self.stock_data = stock_data
-
-    def normalize_data(self):
-        data = self.stock_data
+        self.train_data = train_data
+        self.test_data = test_data
+    
+    
+    
+    '''
+    ###########################################################################
+                                Data Handling
+    ###########################################################################
+    '''
+    def normalize_data(self, data):
         normalized_data = data / data.iloc[0, :]
         return normalized_data
 
-    # There should be difference signal
+    '''
+    ###########################################################################
+                                Picking Pairs
+    ###########################################################################
+    '''
+    # Picking to pairs
+    # Different Measures should be tested
     # Here distance measure has been used
-    def distance_measure(self, a, b):
-        df_normalized_price = self.normalize_data()
+    def distance_measure(self, a, b, data):
+        df_normalized_price = self.normalize_data(data)
         ans = (df_normalized_price[a] - df_normalized_price[b]).apply(np.square).sum()
         return ans
     
-    def df_results(self):
+    def stat_results(self, a, b, data):
+        df_normalized_price = self.normalize_data(data)
+        mean = (df_normalized_price[a] - df_normalized_price[b]).mean()
+        std = (df_normalized_price[a] - df_normalized_price[b]).std()
+        return mean, std
+    
+    '''
+    ###########################################################################
+                                    Training
+    ###########################################################################
+    '''
+    
+    ## Picking Results
+    def df_picking_results(self):
         # Within one sector stock lists
         stock1 = []
         stock2 = []
         measure = []
+        mean = []
+        std = []
         stock_lists = self.stock_lists
         for i in stock_lists:
             m = stock_lists.index(i)
@@ -51,31 +80,46 @@ class PairsTrading(object):
                 for j in stock_lists[m+1:]:
                     stock1.append(i)
                     stock2.append(j)
-                    measure.append(self.distance_measure(i, j))
-                    #print(i+' and '+j+' : ', self.distance_measure(self.data_train, i, j))
+                    measure.append(self.distance_measure(i, j, self.train_data))
+                    a, b = self.stat_results(i, j, self.train_data)
+                    mean.append(a)
+                    std.append(b)
     
-        df_result_train = pd.DataFrame()
-        df_result_train['Measure'] = pd.Series(measure)
-        df_result_train['Stock1'] = pd.Series(stock1)
-        df_result_train['Stock2'] = pd.Series(stock2)
+        df_picking_result_train = pd.DataFrame()
+        df_picking_result_train['Measure'] = pd.Series(measure)
+        df_picking_result_train['Stock1'] = pd.Series(stock1)
+        df_picking_result_train['Stock2'] = pd.Series(stock2)
+        df_picking_result_train['Diff_Mean'] = pd.Series(mean)
+        df_picking_result_train['Diff_Std'] = pd.Series(std)
     
-        df_result_train = df_result_train.sort_values('Measure')
-        return df_result_train
+        df_picking_result_train = df_picking_result_train.sort_values('Measure')
+        
+        return df_picking_result_train
     
+    ## Training Results and visualization    
     def visualization(self, nrows=2, ncolumns=5):
+        npairs = nrows * ncolumns
 
-        df_output = self.df_results()
-        Data = self.stock_data
-        # Plot
+        df_output = self.df_picking_results()
+        Train_Data = self.train_data
+        
+        # Plotting
         fig, ax = plt.subplots(nrows, ncolumns, sharex=True)
 
         for i in range(nrows * ncolumns):
             ix = np.unravel_index(i, ax.shape)
-            p = df_output.iloc[0:10,:].loc[:,['Stock1','Stock2']].iloc[i].values
-            Data[p.tolist()].plot(ax=ax[ix])
-
+            p = df_output.iloc[0:npairs,:].loc[:,['Stock1','Stock2']].iloc[i].values
+            Train_Data[p.tolist()].plot(ax=ax[ix])
         plt.show()
-        
+    
+    '''
+    ###########################################################################
+                                    Testing
+    ###########################################################################
+    '''
+    
+    
+    
 if __name__=='__main__':
 
     start = dt.datetime(2016, 1, 1)
@@ -129,10 +173,10 @@ if __name__=='__main__':
     gold_mining_train = gold_mining.loc[start.strftime('%Y-%m-%d'):end_1.strftime('%Y-%m-%d'), :]
     gold_mining_test = gold_mining.loc[start_2.strftime('%Y-%m-%d'):end.strftime('%Y-%m-%d'), :]
 
-    # Gold and Gold_Mining instance
-    Gold = PairsTrading(gold_industry, gold_train)
-    Gold.df_results()
-    Gold.visualization()
+    # Gold and Gold_Mining instancse
+    Gold = PairsTrading(gold_industry, gold, gold_train, gold_test)
+    Gold.df_picking_results()
+    Gold.visualization(4, 5)
     #
     # Gold_mining = PairsTrading(gold_mining_industry, gold_mining_train)
     # Gold_mining.df_results()
@@ -153,5 +197,3 @@ if __name__=='__main__':
     # df_result['Stock2'] = pd.Series(stock2)
     #
     # df_result = df_result.sort_values('Measure')
-
-            
