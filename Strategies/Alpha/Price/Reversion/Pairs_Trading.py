@@ -117,15 +117,30 @@ class PairsTrading(object):
                                     Testing
     ###########################################################################
     '''
-    
-    
-    
+    def back_testing(self):
+        df_output = self.df_picking_results()
+        Test_Data = self.test_data
+        
+        npairs = 10
+        i = 1
+        p = df_output.iloc[0:npairs,:].loc[:,['Stock1','Stock2']].iloc[i].values
+        mean = df_output.iloc[0:npairs,:].loc[:,'Diff_Mean'].iloc[i]
+        std = df_output.iloc[0:npairs,:].loc[:,'Diff_Std'].iloc[i]
+        tmp = Test_Data[p.tolist()]
+        tmp['Spread'] = -tmp.diff(axis=1).iloc[:, -1]
+        tmp['Z_score'] = (tmp['Spread'] - mean) / std
+        
+        # Entry Signal
+        # Z_score > 2 or Z_score < -2
+        df_entry = tmp.where((tmp['Z_score']>2) | (tmp['Z_score']<-2))
+        
+        # Exit Signal
+        # Z_score < 1 or Z_score > -1
+        df_exit = tmp.where((tmp['Z_score']<1) | (tmp['Z_score']>-1))
+        
+        
+        
 if __name__=='__main__':
-
-    start = dt.datetime(2016, 1, 1)
-    end_1 = dt.datetime(2016, 12, 31)
-    start_2 = dt.datetime(2017, 1, 1)
-    end = dt.datetime(2017, 6, 30)
 
     # Step 1: List down all the stocks in the industry
     gold_industry = ['ABX', 'NEM', 'GG', 'AEM', 'GOLD',
@@ -155,23 +170,29 @@ if __name__=='__main__':
             print(i + ' is not available')
     '''
     gold = pd.read_csv('gold_industry.csv')
-    gold_mining = pd.read_csv('gold_mining_industry.csv')
+    # gold_mining = pd.read_csv('gold_mining_industry.csv')
 
     gold['Date'] = gold['Date'].apply(pd.to_datetime)
-    gold_mining['Date'] = gold_mining['Date'].apply(pd.to_datetime)
+    # gold_mining['Date'] = gold_mining['Date'].apply(pd.to_datetime)
 
     gold = gold.set_index('Date')
-    gold_mining = gold_mining.set_index('Date')
+    # gold_mining = gold_mining.set_index('Date')
 
     # Normalize Price
     gold = gold / gold.iloc[0, :]
-    gold_mining = gold_mining / gold_mining.iloc[0, :]
+    # gold_mining = gold_mining / gold_mining.iloc[0, :]
 
+    # Choose the proper training and test dataset
+    start = dt.datetime(2016, 1, 1)
+    end_1 = dt.datetime(2016, 12, 31)
+    start_2 = dt.datetime(2017, 1, 1)
+    end = dt.datetime(2017, 6, 30)
+        
     gold_train = gold.loc[start.strftime('%Y-%m-%d'):end_1.strftime('%Y-%m-%d'), :]
     gold_test = gold.loc[start_2.strftime('%Y-%m-%d'):end.strftime('%Y-%m-%d'), :]
 
-    gold_mining_train = gold_mining.loc[start.strftime('%Y-%m-%d'):end_1.strftime('%Y-%m-%d'), :]
-    gold_mining_test = gold_mining.loc[start_2.strftime('%Y-%m-%d'):end.strftime('%Y-%m-%d'), :]
+    # gold_mining_train = gold_mining.loc[start.strftime('%Y-%m-%d'):end_1.strftime('%Y-%m-%d'), :]
+    # gold_mining_test = gold_mining.loc[start_2.strftime('%Y-%m-%d'):end.strftime('%Y-%m-%d'), :]
 
     # Gold and Gold_Mining instancse
     Gold = PairsTrading(gold_industry, gold, gold_train, gold_test)
@@ -197,3 +218,14 @@ if __name__=='__main__':
     # df_result['Stock2'] = pd.Series(stock2)
     #
     # df_result = df_result.sort_values('Measure')
+    
+    
+    tmp[['GOLD', 'GFI', 'Z_score']].plot()
+    
+    plt.gcf()
+    plt.scatter(df_entry.index, df_entry['Z_score'], marker='o')
+    plt.scatter(tmp.index, tmp.where((tmp['Z_score']>2))['Z_score'])
+    plt.plot(tmp.index, np.array([2]*tmp.index.size))
+    plt.plot(tmp.index, np.array([1]*tmp.index.size))
+    plt.show()
+    
