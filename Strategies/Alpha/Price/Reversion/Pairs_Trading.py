@@ -117,28 +117,50 @@ class PairsTrading(object):
                                     Testing
     ###########################################################################
     '''
-    def back_testing(self):
+    def back_testing(self, nrows=2, ncolumns=5):
+        npairs = nrows * ncolumns
         df_output = self.df_picking_results()
         Test_Data = self.test_data
+        # Plotting
+        fig, ax = plt.subplots(nrows, ncolumns, sharex=True)
         
-        npairs = 10
-        i = 1
-        p = df_output.iloc[0:npairs,:].loc[:,['Stock1','Stock2']].iloc[i].values
-        mean = df_output.iloc[0:npairs,:].loc[:,'Diff_Mean'].iloc[i]
-        std = df_output.iloc[0:npairs,:].loc[:,'Diff_Std'].iloc[i]
-        tmp = Test_Data[p.tolist()]
-        tmp['Spread'] = -tmp.diff(axis=1).iloc[:, -1]
-        tmp['Z_score'] = (tmp['Spread'] - mean) / std
+        for i in range(nrows * ncolumns):
+            p = df_output.iloc[0:npairs,:].loc[:,['Stock1','Stock2']].iloc[i].values
+            mean = df_output.iloc[0:npairs,:].loc[:,'Diff_Mean'].iloc[i]
+            std = df_output.iloc[0:npairs,:].loc[:,'Diff_Std'].iloc[i]
+            pairs = p.tolist()
+            tmp = Test_Data[pairs]
+            tmp['Spread'] = -tmp.diff(axis=1).iloc[:, -1]
+            tmp['Z_score'] = (tmp['Spread'] - mean) / std
         
-        # Entry Signal
-        # Z_score > 2 or Z_score < -2
-        df_entry = tmp.where((tmp['Z_score']>2) | (tmp['Z_score']<-2))
-        
-        # Exit Signal
-        # Z_score < 1 or Z_score > -1
-        df_exit = tmp.where((tmp['Z_score']<1) | (tmp['Z_score']>-1))
-        
-        
+            # Entry Signal
+            upper_b = 2
+            bottom_b = 1
+            # Z_score > 2 or Z_score < -2
+            df_entry_sell = tmp.where((tmp['Z_score']>upper_b) & (tmp['Z_score'].diff() >=0))
+            df_entry_buy = tmp.where((tmp['Z_score']<-upper_b) & (tmp['Z_score'].diff() <=0))
+            
+            # Exit Signal
+            # Z_score < 1 or Z_score > -1
+            df_exit_buy = tmp.where((tmp['Z_score']<bottom_b) & (0<tmp['Z_score']) & (tmp['Z_score'].diff() <=0))
+            df_exit_sell = tmp.where((tmp['Z_score']>-bottom_b) & (tmp['Z_score']<0) & (tmp['Z_score'].diff() >=0))
+            
+            ix = np.unravel_index(i, ax.shape)
+
+            x = ax[ix].plot(tmp.index, tmp.drop('Spread', axis=1))
+            ax[ix].legend(x, tuple(pairs))
+            
+            ax[ix].scatter(df_entry_sell.index, df_entry_sell['Z_score'], marker='o', color='r')
+            ax[ix].scatter(df_exit_buy.index, df_exit_buy['Z_score'], marker='x', color='r')
+            ax[ix].plot(tmp.index, np.array([2]*tmp.index.size))
+            ax[ix].plot(tmp.index, np.array([1]*tmp.index.size))
+            
+            ax[ix].scatter(df_entry_buy.index, df_entry_buy['Z_score'], marker='o', color='b')
+            ax[ix].scatter(df_exit_sell.index, df_exit_sell['Z_score'], marker='x', color='b')
+            ax[ix].plot(tmp.index, np.array([-2]*tmp.index.size))
+            ax[ix].plot(tmp.index, np.array([-1]*tmp.index.size))
+          
+        plt.show()
         
 if __name__=='__main__':
 
@@ -170,17 +192,17 @@ if __name__=='__main__':
             print(i + ' is not available')
     '''
     gold = pd.read_csv('gold_industry.csv')
-    # gold_mining = pd.read_csv('gold_mining_industry.csv')
+    gold_mining = pd.read_csv('gold_mining_industry.csv')
 
     gold['Date'] = gold['Date'].apply(pd.to_datetime)
-    # gold_mining['Date'] = gold_mining['Date'].apply(pd.to_datetime)
+    gold_mining['Date'] = gold_mining['Date'].apply(pd.to_datetime)
 
     gold = gold.set_index('Date')
-    # gold_mining = gold_mining.set_index('Date')
+    gold_mining = gold_mining.set_index('Date')
 
     # Normalize Price
     gold = gold / gold.iloc[0, :]
-    # gold_mining = gold_mining / gold_mining.iloc[0, :]
+    gold_mining = gold_mining / gold_mining.iloc[0, :]
 
     # Choose the proper training and test dataset
     start = dt.datetime(2016, 1, 1)
@@ -191,41 +213,83 @@ if __name__=='__main__':
     gold_train = gold.loc[start.strftime('%Y-%m-%d'):end_1.strftime('%Y-%m-%d'), :]
     gold_test = gold.loc[start_2.strftime('%Y-%m-%d'):end.strftime('%Y-%m-%d'), :]
 
-    # gold_mining_train = gold_mining.loc[start.strftime('%Y-%m-%d'):end_1.strftime('%Y-%m-%d'), :]
-    # gold_mining_test = gold_mining.loc[start_2.strftime('%Y-%m-%d'):end.strftime('%Y-%m-%d'), :]
+    gold_mining_train = gold_mining.loc[start.strftime('%Y-%m-%d'):end_1.strftime('%Y-%m-%d'), :]
+    gold_mining_test = gold_mining.loc[start_2.strftime('%Y-%m-%d'):end.strftime('%Y-%m-%d'), :]
 
     # Gold and Gold_Mining instancse
+    ###########################################################################
     Gold = PairsTrading(gold_industry, gold, gold_train, gold_test)
-    Gold.df_picking_results()
-    Gold.visualization(4, 5)
-    #
-    # Gold_mining = PairsTrading(gold_mining_industry, gold_mining_train)
-    # Gold_mining.df_results()
-    # Gold_mining.visualization()
-    #
-    # stock1 = []
-    # stock2 = []
-    # measure = []
-    # for i in Gold.stock_lists:
-    #     for j in Gold_mining.stock_lists:
-    #         stock1.append(i)
-    #         stock2.append(j)
-    #         measure.append((Gold.stock_data[i] - Gold_mining.stock_data[j]).apply(np.square).sum())
-    #
-    # df_result = pd.DataFrame()
-    # df_result['Measure'] = pd.Series(measure)
-    # df_result['Stock1'] = pd.Series(stock1)
-    # df_result['Stock2'] = pd.Series(stock2)
-    #
-    # df_result = df_result.sort_values('Measure')
+#    Gold.df_picking_results()
+#    Gold.visualization()
+#    Gold.back_testing()
     
+    Gold_mining = PairsTrading(gold_mining_industry, gold_mining, gold_mining_train, gold_mining_test)
     
-    tmp[['GOLD', 'GFI', 'Z_score']].plot()
+    stock1 = []
+    stock2 = []
+    measure = []
+    mean = []
+    std = []
+    for i in Gold.stock_lists:
+        for j in Gold_mining.stock_lists:
+            stock1.append(i)
+            stock2.append(j)
+            measure.append((Gold.stock_data[i] - Gold_mining.stock_data[j]).apply(np.square).sum())
+            mean.append((Gold.stock_data[i] - Gold_mining.stock_data[j]).mean())
+            std.append((Gold.stock_data[i] - Gold_mining.stock_data[j]).std())
+            
+    df_result = pd.DataFrame()
+    df_result['Measure'] = pd.Series(measure)
+    df_result['Stock1'] = pd.Series(stock1)
+    df_result['Stock2'] = pd.Series(stock2)
+    df_result['Diff_Mean'] = pd.Series(mean)
+    df_result['Diff_Std'] = pd.Series(std)
     
-    plt.gcf()
-    plt.scatter(df_entry.index, df_entry['Z_score'], marker='o')
-    plt.scatter(tmp.index, tmp.where((tmp['Z_score']>2))['Z_score'])
-    plt.plot(tmp.index, np.array([2]*tmp.index.size))
-    plt.plot(tmp.index, np.array([1]*tmp.index.size))
+    df_result = df_result.sort_values('Measure')
+    ###########################################################################
+    nrows= 2
+    ncolumns = 5
+    npairs = nrows * ncolumns
+    df_output = df_result
+    Test_Data = Gold.test_data.join(Gold_mining.test_data)
+    # Plotting
+    fig, ax = plt.subplots(nrows, ncolumns, sharex=True)
+    
+    for i in range(nrows * ncolumns):
+        p = df_output.iloc[0:npairs,:].loc[:,['Stock1','Stock2']].iloc[i].values
+        mean = df_output.iloc[0:npairs,:].loc[:,'Diff_Mean'].iloc[i]
+        std = df_output.iloc[0:npairs,:].loc[:,'Diff_Std'].iloc[i]
+        pairs = p.tolist()
+        tmp = Test_Data[pairs]
+        tmp['Spread'] = -tmp.diff(axis=1).iloc[:, -1]
+        tmp['Z_score'] = (tmp['Spread'] - mean) / std
+    
+        # Entry Signal
+        upper_b = 1.5
+        bottom_b = 1
+        # Z_score > 2 or Z_score < -2
+        df_entry_sell = tmp.where((tmp['Z_score']>upper_b) & (tmp['Z_score'].diff() >=0))
+        df_entry_buy = tmp.where((tmp['Z_score']<-upper_b) & (tmp['Z_score'].diff() <=0))
+        
+        # Exit Signal
+        # Z_score < 1 or Z_score > -1
+        df_exit_buy = tmp.where((tmp['Z_score']<bottom_b) & (0<tmp['Z_score']) & (tmp['Z_score'].diff() <=0))
+        df_exit_sell = tmp.where((tmp['Z_score']>-bottom_b) & (tmp['Z_score']<0) & (tmp['Z_score'].diff() >=0))
+        
+        ix = np.unravel_index(i, ax.shape)
+
+        x = ax[ix].plot(tmp.index, tmp.drop('Spread', axis=1))
+        ax[ix].legend(x, tuple(pairs))
+        
+        ax[ix].scatter(df_entry_sell.index, df_entry_sell['Z_score'], marker='o', color='r')
+        ax[ix].scatter(df_exit_buy.index, df_exit_buy['Z_score'], marker='x', color='r')
+        ax[ix].plot(tmp.index, np.array([upper_b]*tmp.index.size))
+        ax[ix].plot(tmp.index, np.array([bottom_b]*tmp.index.size))
+        
+        ax[ix].scatter(df_entry_buy.index, df_entry_buy['Z_score'], marker='o', color='b')
+        ax[ix].scatter(df_exit_sell.index, df_exit_sell['Z_score'], marker='x', color='b')
+        ax[ix].plot(tmp.index, np.array([-upper_b]*tmp.index.size))
+        ax[ix].plot(tmp.index, np.array([-bottom_b]*tmp.index.size))
+      
     plt.show()
     
