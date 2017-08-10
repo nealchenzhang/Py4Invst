@@ -4,85 +4,109 @@
 #
 # Created on Fri Mar 31 17:31:02 2017
 
-# @author: nealcz @Aian_fund
+# @author: NealChenZhang
 
-# This program is personal trading platform desiged when employed in 
-# Aihui Asset Management as a quantatitive analyst.
-# 
-# Contact: 
+# This program is personal trading platform designed when employed in
+# Aihui Asset Management as a quantitative analyst.
+#
+# Contact:
 # Name: Chen Zhang (Neal)
 # Mobile: (+86) 139-1706-0712
 # E-mail: nealzc1991@gmail.com
 
 ###############################################################################
-from __future__ import print_function
-
-#print(__doc__)
-
-import datetime as dt
-import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
 from Analyzers.Analyzer import Analyzer
 
+
 class Draw_Down(Analyzer):
     """
-    This funciton is to calcuate the Draw_Down of portfolio values.
-    
-    Including: Maximum Drawdonw(MDD), High-water Mark(HWM),
-               Maximum Drawdwon Duration(MDD Duration),
-               MaxDrawDown_start, MaxDrawDown_end
-    
+    This function is to calculate the Draw_Down of portfolio values.
+
+    Analyzer:
+    ===========================================================================
+        name: Sharpe Ratio
+        url: https://en.wikipedia.org/wiki/Sharpe_ratio
+
+
+    Methods:
+    ===========================================================================
+        getName: get Name
+        getUrl: get Url of this analyzer
+        Maximum_Drawdown: calculate the MDD during the period
+        Drawdown_Duration: return the DD Duration during the period
+        HWM: return the HWM of the portfolio
+        Drawdown_Duration_start: return when the drawdown duration starts
+        Drawdown_Duration_end: return when the drawdown duration ends
+
     """
     __name = "Draw_Down"
     __Url = "https://en.wikipedia.org/wiki/Drawdown_(economics)"
-    
-    def __init__(self, str_valuesfile):
-        Analyzer.__init__(self, str_valuesfile)
-        #======================================================================
-        normalized_values = self.NormPortValues.copy()
+
+    def __init__(self, str_filepath):
+        Analyzer.__init__(self, str_filepath)
+
+        # ======================================================================
+        normalized_values = self.get_df()["Normalized Value"].copy()
         n = normalized_values.size
-        self.highwatermark = pd.Series(np.zeros(n),\
-                                       index=normalized_values.index)
-        self.drawdown = pd.Series(np.zeros(n), \
+        highwatermark = pd.Series(np.zeros(n),
                                   index=normalized_values.index)
-        self.drawdownduration = pd.Series(np.zeros(n), \
-                                          index=normalized_values.index)
+        drawdown = pd.Series(np.zeros(n),
+                             index=normalized_values.index)
+        drawdownduration = pd.Series(np.zeros(n),
+                                     index=normalized_values.index)
         for i in range(1, n):
-            self.highwatermark.iloc[i] = max(self.highwatermark.iloc[i - 1], \
-                                         float(normalized_values.iloc[i]))
-            self.drawdown.iloc[i] = (self.highwatermark.iloc[i] - \
-                                      float(normalized_values.iloc[i])) \
-                                    / self.highwatermark.iloc[i]
-            if self.drawdown.iloc[i] == 0:
-                self.drawdownduration.iloc[i] = 0
+            highwatermark.iloc[i] = max(highwatermark.iloc[i - 1],
+                                        float(normalized_values.iloc[i]))
+            drawdown.iloc[i] = (highwatermark.iloc[i] -
+                                float(normalized_values.iloc[i])) / highwatermark.iloc[i]
+            if drawdown.iloc[i] == 0:
+                drawdownduration.iloc[i] = 0
             else:
-                self.drawdownduration.iloc[i] = \
-                                          self.drawdownduration.iloc[i - 1] + 1
-        
-        self.MaxDrawDown_end = self.drawdownduration.argmax()
-        self.MaxDrawDown_start = normalized_values.index[\
-                    normalized_values.index.get_loc(self.MaxDrawDown_end) - \
-                                            int(max(self.drawdownduration))]
-    
+                drawdownduration.iloc[i] = drawdownduration.iloc[i - 1] + 1
+
+        MaxDrawDown_end = drawdownduration.argmax()
+        MaxDrawDown_start = normalized_values.index[normalized_values.index.get_loc(MaxDrawDown_end) -
+                                                    int(max(drawdownduration))]
+
+        # ======================================================================
+        dic = {"drawdown": drawdown,
+               "drawdownduration": drawdownduration,
+               "highwatermark": highwatermark,
+               "MaxDrawDown_start": MaxDrawDown_start,
+               "MaxDrawDown_end": MaxDrawDown_end}
+
+        for i in dic.keys():
+            setattr(self, i, dic[i])
+
     def getName(self):
         return self.__name
-    
+
     def getUrl(self):
         return self.__Url
-        
+
     def Maximum_Drawdown(self):
         return max(self.drawdown)
-    
+
     def Drawdown_Duration(self):
         return int(max(self.drawdownduration))
-    
+
     def HWM(self):
         return max(self.highwatermark)
-    
+
     def Drawdown_Duration_start(self):
         return self.MaxDrawDown_start
-    
+
     def Drawdown_Duration_end(self):
         return self.MaxDrawDown_end
+
+# if __name__ == "__main__":
+#     x = Draw_Down("D:/Neal/Quant/PythonProject/ValuesFile/values1.csv")
+#     # print(dir(x))
+#     # x.description()
+#     # print(x.get_df())
+#     # print(x.getName())
+#     # print(x.getUrl())
+#     print(x.drawdown, x.HWM(), x.highwatermark)

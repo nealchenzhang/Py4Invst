@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 ###############################################################################
 #
-# Created on Thu Apr 13 10:08:14 2017
+# Created on Fri Mar 31 15:57:14 2017
 
-# @author: nealcz @Aian_fund
+# @author: NealChenZhang
 
-# This program is personal trading platform desiged when employed in 
-# Aihui Asset Management as a quantatitive analyst.
-# 
-# Contact: 
+# This program is personal trading platform designed when employed in
+# Aihui Asset Management as a quantitative analyst.
+#
+# Contact:
 # Name: Chen Zhang (Neal)
 # Mobile: (+86) 139-1706-0712
 # E-mail: nealzc1991@gmail.com
@@ -21,7 +20,7 @@ This module is based on Regression Analysis.
 
 Guidelines:
     1. Is the model correctly specified?
-        No --> Correct the model misspecification
+        No --> Correct the model mis-specification
         Yes --> 2.
     2. Are individual coefficients statistically significant? (t-test)
                             AND
@@ -33,10 +32,10 @@ Guidelines:
         Yes --> Conditional? (Breusch-Pagan Chi-square test)
                 Yes --> Use White-corrected standard errors --> 4.
                 No --> 4.
-    4. Is serial correaltion present? (Durbin-Watson test)
+    4. Is serial correlation present? (Durbin-Watson test)
         No --> 5.
         Yes --> Use Hansen method to adjust standard errors -->5.
-    5. Does model have significant multicollinearity?
+    5. Does model have significant multi-collinearity?
         Yes --> Drop one of the correlated variables --> Use the model!
         No --> Use the model!
 """

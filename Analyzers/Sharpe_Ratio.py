@@ -2,52 +2,50 @@
 # -*- coding: utf-8 -*-
 ###############################################################################
 #
-# Created on Thu Mar  2 14:17:31 2017
+# Created on Fri Mar 31 17:31:02 2017
 
-# @author: nealcz @Aian_fund
+# @author: NealChenZhang
 
-# This program is personal trading platform desiged when employed in 
-# Aihui Asset Management as a quantatitive analyst.
-# 
-# Contact: 
+# This program is personal trading platform designed when employed in
+# Aihui Asset Management as a quantitative analyst.
+#
+# Contact:
 # Name: Chen Zhang (Neal)
 # Mobile: (+86) 139-1706-0712
 # E-mail: nealzc1991@gmail.com
 
 ###############################################################################
-from __future__ import print_function
-#print(__doc__)
-
-import datetime as dt
-import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
 from Analyzers.Analyzer import Analyzer
 
 class Sharpe_Ratio(Analyzer):
-    '''
-    This analyzer calcuates the SharpeRatio of a strategy.
-    
+    """
+    This analyzer calculates the SharpeRatio of a strategy.
+
     Analyzer:
     ===========================================================================
+        basis: Sharpe Ratio calculation based on {Daily, Weekly, Monthly}
         name: Sharpe Ratio
         url: https://en.wikipedia.org/wiki/Sharpe_ratio
-    
+
+
     Methods:
     ===========================================================================
         getName: get Name
         getUrl: get Url of this analyzer
         SharpeRatio: calculate the Sharpe Ratio during the period
-        
-    '''
+
+    """
     __name = "Sharpe Ratio"
     __Url = "https://en.wikipedia.org/wiki/Sharpe_ratio"
     
-    def __init__(self, str_valuesfile, basis='Daily'):
-        Analyzer.__init__(self, str_valuesfile)
+    def __init__(self, str_filepath, basis='Daily'):
+        Analyzer.__init__(self, str_filepath)
         #======================================================================
-        self.basis = {'Daily':252, 'Weekly':52, 'Monthly':12}[basis]
+        self.MT = {'Daily': 252, 'Weekly': 52, 'Monthly': 12}[basis]
+        self.basis = basis
         self.describe = "The Sharpe Ratio is {} based".format(basis.upper())
 
     def getName(self):
@@ -58,9 +56,9 @@ class Sharpe_Ratio(Analyzer):
         
     def SharpeRatio(self):
         """
-        self.PortReturns: returns based on [basis] data
+        self.PortReturns: returns based on [MT] data
         """
-        f_Sharpe_Ratio = np.sqrt(self.basis) * self.AvrgRet / self.StdRet
-        print('Sharpe_Ratio from {} to {} is {:.4}.'\
-              .format(self.start_date, self.end_date, f_Sharpe_Ratio))        
+        f_Sharpe_Ratio = np.sqrt(self.MT) * self.AvrgRet / self.StdRet
+        print('{} Sharpe_Ratio from {} to {} is {:.4}.'
+              .format(self.basis.upper(), self.get_start_date(), self.get_end_date(), f_Sharpe_Ratio))
         return f_Sharpe_Ratio
