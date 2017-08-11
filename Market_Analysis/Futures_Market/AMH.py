@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 ###############################################################################
 #
 # Created on Mon Mar 20 17:00:38 2017
 
-# @author: nealcz @Aian_fund
+# @author: NealChenZhang
 
-# This program is personal trading platform desiged when employed in 
-# Aihui Asset Management as a quantatitive analyst.
-# 
-# Contact: 
+# This program is personal trading platform designed when employed in
+# Aihui Asset Management as a quantitative analyst.
+#
+# Contact:
 # Name: Chen Zhang (Neal)
 # Mobile: (+86) 139-1706-0712
 # E-mail: nealzc1991@gmail.com
@@ -32,12 +31,12 @@ import pandas as pd
 import numpy as np
 import datetime as dt
 
-class AMH():
+class AMH(object):
     """
-    This class is used to anlaysis different asset class, specifically for
+    This class is used to anlayze different asset class, specifically for
     commodities.
     
-    The tools used to analysis trendi is Signal_to_Noise and Market Divergence
+    The tools used to analyze trend are Signal_to_Noise and Market Divergence
     Index.
     
     Functions:
@@ -53,9 +52,15 @@ class AMH():
         .get_MDI
         
     """
-    def Signal_to_Noise(na_price):
+    __Url = "https://en.wikipedia.org/wiki/Signal-to-noise_ratio"
+
+    def __init__(self, ):
+
+
+
+    def Signal_to_Noise(self, na_price):
         """
-        Signal_to_Noise: the raio of the overall trend to a series of price 
+        Signal_to_Noise: the ratio of the overall trend to a series of price
         changes during the same period, or the ratio of magnitude of the trend 
         to the volatility around that trend.
             
@@ -93,7 +98,7 @@ class AMH():
             The greater the MDI, the greater the trends are across markets.
         
         Input:
-            df_markets_SNRs: dataframe for SNRs of different markets
+            df_markets_SNRs: DataFrame for SNRs of different markets
             # Asset class for different industries
             
         Output:
@@ -103,3 +108,6 @@ class AMH():
         MDI = df_markets_SNRs.apply(np.mean, axis=1)
         MDI.plot()
         return MDI
+
+    def getUrl(self):
+        return self.__Url

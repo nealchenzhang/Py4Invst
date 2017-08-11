@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 ###############################################################################
 #
 # Created on Wed Apr 05 10:27:45 2017
 
-# @author: nealcz @Aian_fund
+# @author: NealChenZhang
 
-# This program is personal trading platform desiged when employed in 
-# Aihui Asset Management as a quantatitive analyst.
-# 
-# Contact: 
+# This program is personal trading platform designed when employed in
+# Aihui Asset Management as a quantitative analyst.
+#
+# Contact:
 # Name: Chen Zhang (Neal)
 # Mobile: (+86) 139-1706-0712
 # E-mail: nealzc1991@gmail.com
