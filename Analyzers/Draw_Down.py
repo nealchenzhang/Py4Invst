@@ -33,8 +33,8 @@ class Draw_Down(Analyzer):
 
     Methods:
     ===========================================================================
-        getName: get Name
-        getUrl: get Url of this analyzer
+        get_Name: get Name
+        get_Url: get Url of this analyzer
         Maximum_Drawdown: calculate the MDD during the period
         Drawdown_Duration: return the DD Duration during the period
         HWM: return the HWM of the portfolio
@@ -81,10 +81,10 @@ class Draw_Down(Analyzer):
         for i in dic.keys():
             setattr(self, i, dic[i])
 
-    def getName(self):
+    def get_Name(self):
         return self.__name
 
-    def getUrl(self):
+    def get_Url(self):
         return self.__Url
 
     def Maximum_Drawdown(self):

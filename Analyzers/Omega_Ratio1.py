@@ -33,8 +33,8 @@ class Omega_Ratio(Analyzer):
     
     Methods:
     ===========================================================================
-        getName: get Name
-        getUrl: get Url of this analyzer
+        get_Name: get Name
+        get_Url: get Url of this analyzer
         OmegaRatio: calculate the Omega Ratio during the period
 
     """
@@ -53,10 +53,10 @@ class Omega_Ratio(Analyzer):
         else:
             print('Please re-enter the required returns data and target_return')
 
-    def getName(self):
+    def get_Name(self):
         return self.__name
 
-    def getUrl(self):
+    def get_Url(self):
         return self.__Url
 
     def OmegaRatio(self):

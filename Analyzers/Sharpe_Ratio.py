@@ -33,8 +33,8 @@ class Sharpe_Ratio(Analyzer):
 
     Methods:
     ===========================================================================
-        getName: get Name
-        getUrl: get Url of this analyzer
+        get_Name: get Name
+        get_Url: get Url of this analyzer
         SharpeRatio: calculate the Sharpe Ratio during the period
 
     """
@@ -48,10 +48,10 @@ class Sharpe_Ratio(Analyzer):
         self.basis = basis
         self.describe = "The Sharpe Ratio is {} based".format(basis.upper())
 
-    def getName(self):
+    def get_Name(self):
         return self.__name
     
-    def getUrl(self):
+    def get_Url(self):
         return self.__Url
         
     def SharpeRatio(self):

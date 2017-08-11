@@ -21,7 +21,11 @@
 # print("Sortino Ratio: ", a.SortinoRatio())
 
 from Market_Analysis import Futures_Market
-import pandas as pd
-import numpy as np
 
-Futures_Market.AMH
+tmp = Futures_Market.SNR("ru")
+
+print(tmp.get_Asset_price())
+print(tmp.rolling_SNR())
+
+print(tmp.get_Name())
+print(tmp.get_Url())

@@ -20,51 +20,51 @@ This module is based on Adaptive Markets Hypothesis.
 
 Following functions are used to measuring market divergence:
 SNR(signal-to-noise-ratio), MDI(market divergence index).
-
-Managed Futures Portfolio Construction
-Entry, Size, Exit, and Allocation.
-
 """
 
-print(__doc__)
+# print(__doc__)
 import pandas as pd
 import numpy as np
-import datetime as dt
 
-class AMH(object):
+
+class SNR(object):
     """
-    This class is used to anlayze different asset class, specifically for
-    commodities.
-    
-    The tools used to analyze trend are Signal_to_Noise and Market Divergence
-    Index.
+    The tools used to analyze trend within asset class is Signal_to_Noise,
+    specifically for commodities.
     
     Functions:
     ===========================================================================
-        Signal_to_Noise
-        rolling_SNR
-        Market_Divergence_Index
+        Signal_to_Noise: function to calculate SNR
+        rolling_SNR: return SNR series based on the lookback_period
+        # Market_Divergence_Index
     
     Methods:
     ===========================================================================
-        .get_SNR
-        .get_rolling_SNR
-        .get_MDI
+        .get_Asset_price: get df_price based on asset, start_date, and end_date
         
     """
+    print(__doc__)
+    __name = "SNR"
     __Url = "https://en.wikipedia.org/wiki/Signal-to-noise_ratio"
 
-    def __init__(self, ):
+    def __init__(self, asset, start_date="2017-01-01", end_date="2017-06-30"):
+        self.asset = asset
+        self.start_date = start_date
+        self.end_date = end_date
 
+    def get_Asset_price(self):
+        """
+        # get price series for this asset
 
+        Have to know the start_date, end_date and path for the csv files
+        """
+        return pd.DataFrame.from_csv(self.asset+".csv")
 
     def Signal_to_Noise(self, na_price):
         """
         Signal_to_Noise: the ratio of the overall trend to a series of price
         changes during the same period, or the ratio of magnitude of the trend 
         to the volatility around that trend.
-            
-        URL: https://en.wikipedia.org/wiki/Signal-to-noise_ratio
             
         Input: 
             na_price: numpy array of some commodity prices
@@ -73,41 +73,59 @@ class AMH(object):
             SNR: return an SNR value
             
         """
-        SNR = np.absolute(na_price[-1]-na_price[0]) \
-                         / np.absolute(pd.Series(na_price).diff()).sum()
+        SNR = np.absolute(na_price[-1]-na_price[0]) / np.absolute(pd.Series(na_price).diff()).sum()
         
         return SNR
     
-    def rolling_SNR(df_price, lookback_period=10):
+    def rolling_SNR(self, lookback_period=10):
         """
         rolling_SNR is used to create a series of SNR based on lookback_period
         for a particular security or asset.
         
         """
-        df_SNR = df_price.rolling(lookback_period).apply(Signal_to_Noise)
+        df_price = self.get_Asset_price()
+        df_SNR = df_price.rolling(lookback_period).apply(self.Signal_to_Noise)
         
         return df_SNR
-    
-    def Market_Divergence_Index(df_markets_SNRs):
+
+    def get_Name(self):
+        return self.__name
+
+    def get_Url(self):
+        return self.__Url
+
+
+class MDI(object):
+    """
+    The tools used to analyze trend across asset class is Market Divergence Index.
+
+    Functions:
+    ===========================================================================
+        Market_Divergence_Index:
+
+    Methods:
+    ===========================================================================
+        .get_MDI
+
+    """
+
+    def Market_Divergence_Index(self, df_markets_SNRs):
         """
-        Market_Divergence_Index(MDI): 
-            The average of the relevant SNRs for a given observation period (n) 
+        Market_Divergence_Index(MDI):
+            The average of the relevant SNRs for a given observation period (n)
             and number of markets (M).
-        
+
         Implication:
             The greater the MDI, the greater the trends are across markets.
-        
+
         Input:
             df_markets_SNRs: DataFrame for SNRs of different markets
             # Asset class for different industries
-            
+
         Output:
             MDI: return a series of MDI values
-            
+
         """
         MDI = df_markets_SNRs.apply(np.mean, axis=1)
         MDI.plot()
         return MDI
-
-    def getUrl(self):
-        return self.__Url
