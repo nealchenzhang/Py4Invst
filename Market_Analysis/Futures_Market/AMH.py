@@ -43,7 +43,7 @@ class SNR(object):
         .get_Asset_price: get df_price based on asset, start_date, and end_date
         
     """
-    print(__doc__)
+    # print(__doc__)
     __name = "SNR"
     __Url = "https://en.wikipedia.org/wiki/Signal-to-noise_ratio"
 
@@ -58,7 +58,7 @@ class SNR(object):
 
         Have to know the start_date, end_date and path for the csv files
         """
-        return pd.DataFrame.from_csv(self.asset+".csv")
+        return pd.DataFrame.from_csv(self.asset+".csv").Close.rename(self.asset)
 
     def Signal_to_Noise(self, na_price):
         """
@@ -85,7 +85,6 @@ class SNR(object):
         """
         df_price = self.get_Asset_price()
         df_SNR = df_price.rolling(lookback_period).apply(self.Signal_to_Noise)
-        
         return df_SNR
 
     def get_Name(self):
@@ -94,6 +93,14 @@ class SNR(object):
     def get_Url(self):
         return self.__Url
 
+
+# """
+# ###############################################################################
+#
+#                           Market Divergence Index
+#
+# ###############################################################################
+# """
 
 class MDI(object):
     """
@@ -108,8 +115,34 @@ class MDI(object):
         .get_MDI
 
     """
+    # print(__doc__)
+    __name = "MDI"
+    # __Url = "https://en.wikipedia.org/wiki/Signal-to-noise_ratio"
 
-    def Market_Divergence_Index(self, df_markets_SNRs):
+    def __init__(self,
+                 start_date="2017-01-01",
+                 end_date="2017-06-30",
+                 markets=["ru"],
+                 lookback_period=10):
+        self.start_date = start_date
+        self.end_date = end_date
+        self.markets = markets
+        self.lookback_period = lookback_period
+
+    def get_df_Markets_SNRs(self, lookback_period=10):
+        ls_markets = self.markets
+        df_Markets_SNRs = pd.DataFrame()
+        for each in ls_markets:
+            # print(each)
+            tmp = SNR(each, self.start_date, self.end_date)\
+                .rolling_SNR(lookback_period=lookback_period)
+            # print(tmp)
+            print("-"*30)
+            df_Markets_SNRs[each] = tmp
+        return df_Markets_SNRs
+
+
+    def Market_Divergence_Index(self):
         """
         Market_Divergence_Index(MDI):
             The average of the relevant SNRs for a given observation period (n)
@@ -126,6 +159,9 @@ class MDI(object):
             MDI: return a series of MDI values
 
         """
-        MDI = df_markets_SNRs.apply(np.mean, axis=1)
+        lookback_period = self.lookback_period
+        df_Marets_SNRs = self.get_df_Markets_SNRs(lookback_period=lookback_period)
+        # print(df_Marets_SNRs)
+        MDI = df_Marets_SNRs.apply(np.mean, axis=1)
         MDI.plot()
         return MDI

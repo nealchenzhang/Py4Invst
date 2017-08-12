@@ -22,10 +22,13 @@
 
 from Market_Analysis import Futures_Market
 
-tmp = Futures_Market.SNR("ru")
+#tmp = Futures_Market.SNR("ru")
+#
+#print(tmp.get_Asset_price())
+#print(tmp.rolling_SNR())
 
-print(tmp.get_Asset_price())
-print(tmp.rolling_SNR())
 
-print(tmp.get_Name())
-print(tmp.get_Url())
+from Market_Analysis import Futures_Market
+tmp = Futures_Market.AMH.MDI(["ru"])
+print(tmp.Market_Divergence_Index().columns)
+# print(tmp.get_df_Markets_SNRs())
