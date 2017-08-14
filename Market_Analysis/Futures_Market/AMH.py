@@ -25,6 +25,9 @@ SNR(signal-to-noise-ratio), MDI(market divergence index).
 # print(__doc__)
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import style
+style.use("ggplot")
 
 
 class SNR(object):
@@ -137,7 +140,8 @@ class MDI(object):
             tmp = SNR(each, self.start_date, self.end_date)\
                 .rolling_SNR(lookback_period=lookback_period)
             # print(tmp)
-            print("-"*30)
+            # print(type(tmp))
+            # print("-"*30)
             df_Markets_SNRs[each] = tmp
         return df_Markets_SNRs
 
@@ -164,4 +168,5 @@ class MDI(object):
         # print(df_Marets_SNRs)
         MDI = df_Marets_SNRs.apply(np.mean, axis=1)
         MDI.plot()
+        plt.show()
         return MDI

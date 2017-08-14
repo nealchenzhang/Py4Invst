@@ -18,7 +18,6 @@
 
 __author__ = 'Neal Chen Zhang'
 
-from .AMH import SNR
-# from .AMH import MDI
+from .AMH import *
 
 __all__ = ['AMH']

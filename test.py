@@ -29,6 +29,7 @@ from Market_Analysis import Futures_Market
 
 
 from Market_Analysis import Futures_Market
-tmp = Futures_Market.AMH.MDI(["ru"])
-print(tmp.Market_Divergence_Index().columns)
+tmp = Futures_Market.AMH.MDI(markets=["ru","l"])
+print(tmp.Market_Divergence_Index())
+# print(tmp.markets)
 # print(tmp.get_df_Markets_SNRs())
