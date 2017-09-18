@@ -1,28 +1,67 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Apr 10 13:59:19 2017
+###############################################################################
+#
+# Created on Mon Apr 10 13:59:19 2017
 
-@author: Neal Chen Zhang
-"""
+# @author: NealChenZhang
+
+# This program is personal trading platform designed when employed in
+# Aihui Asset Management as a quantitative analyst.
+#
+# Contact:
+# Name: Chen Zhang (Neal)
+# Mobile: (+86) 139-1706-0712
+# E-mail: nealzc1991@gmail.com
+
+###############################################################################
 import datetime as dt
-from pymongo import MongoClient
-import pprint
+import pymongo
+import numpy as np
+import pandas as pd
 
-client = MongoClient('localhost', 27017)
+# import re
 
-db = client.test_database
+# import tushare as ts
 
-collection = db.test_collection
-post = {"author": "Mike",
-        "text": "My first blog post!",
-        "tags": ["mongodb", "python", "pymongo"],
-        "date": dt.datetime.utcnow()}
+# ts.set_token('d42b6bb78dae5ca4b400e2629071640bc458b0f1f21eeef71823447ef980fb94')
 
-posts = db.posts
-post_id = posts.insert_one(post).inserted_id
-post_id
 
-db.collection_names(include_system_collections=False)
+class FuturesData(object):
 
-pprint.pprint(posts.find_one())
-pprint.pprint(posts.find_one({"author": "Mike"}))
+    def __init__(self, start_date, end_date, asset, basis='Daily'):
+        self.start_date = start_date
+        self.end_date = end_date
+        self.asset = asset
+        self.basis = basis
+
+    def get_cc(self):
+        """
+        Futures contracts:
+        :return: the continuous contract for the underlying asset
+
+        Method:
+            Define the continuous contract as the trading volume become the
+            first in all futures contracts of that underlying asset at
+            particular date
+        """
+
+
+
+
+# dbhost = "192.168.1.58"
+dbhost = 'localhost'
+dbport = 27017
+
+client = pymongo.MongoClient(host=dbhost, port=dbport)
+
+
+db = client.CTPMinuteDb
+
+collection = db[IF1708]
+
+pprint.pprint(collection.find_one())
+
+for post in collection.find({'date':'2017-08-11'}):
+    pprint.pprint(post)
+
