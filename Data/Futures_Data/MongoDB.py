@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 ###############################################################################
 #
@@ -58,10 +58,5 @@ client = pymongo.MongoClient(host=dbhost, port=dbport)
 
 db = client.CTPMinuteDb
 
-collection = db[IF1708]
 
-pprint.pprint(collection.find_one())
-
-for post in collection.find({'date':'2017-08-11'}):
-    pprint.pprint(post)
 
