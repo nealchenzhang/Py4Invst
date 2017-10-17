@@ -95,6 +95,7 @@ class MyCandleStick(MyMplCanvas):
         # plt.title("股票代码：601558两年K线图")
         # plt.xlabel("时间")
         # plt.ylabel("股价（元）")
+        plt.tight_layout()
         mpf.candlestick_ohlc(self.axes, Data_list, width=1.5, colorup='r', colordown='green')
         # plt.grid()
 
