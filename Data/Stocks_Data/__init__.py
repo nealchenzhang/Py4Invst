@@ -1,7 +1,8 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 ###############################################################################
 #
-# Created on Tue Sept 26 15:00:19 2017
+# Created on Nov. 21 2017 20:22:19 2017
 
 # @author: NealChenZhang
 
@@ -16,17 +17,9 @@
 ###############################################################################
 
 """
-Data from Tushare and stored in MongoDB
-
-MongoDB DataBaseNames:
-    Futures: Futures_Data
-    Stocks: Stocks_Data
-
 """
-from .Futures_Data import *
-from .Stocks_Data import *
+from .MongoDB import *
 
 __author__ = 'Neal Chen Zhang'
 
-
-__all__ = ['Futures_Data', 'Stocks_Data']
+__all__ = ['MongoDB']

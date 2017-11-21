@@ -1,4 +1,3 @@
-!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 ###############################################################################
 #
@@ -38,7 +37,7 @@ class FuturesData(object):
     def get_cc(self):
         """
         Futures contracts:
-        :return: the continuous contract for the underlying asset
+        the continuous contract for the underlying asset
 
         Method:
             Define the continuous contract as the trading volume become the

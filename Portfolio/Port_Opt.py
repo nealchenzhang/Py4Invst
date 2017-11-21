@@ -113,7 +113,6 @@ if __name__ == '__main__':
 
         frontier_volatility.append(result['fun'])
 
-
     port1.MC_simulation()
     plt.plot(frontier_volatility, frontier_y, 'g--', linewidth=3)
     plt.show()
