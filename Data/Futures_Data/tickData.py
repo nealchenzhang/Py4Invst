@@ -45,8 +45,43 @@ class FuturesData(object):
             particular date
         """
 
+import pandas as pd
+import tushare as ts
+import pymongo
+import json
 
+class TushareData(object):
 
+    def __init__(self, tick, *args, **kwargs):
+        super(TushareData, self).__init__(*args, **kwargs)
+
+        self.tick = tick
+
+    def get_tushare_data(self):
+        df = ts.get_hist_data(self.tick)
+        return df
+
+class MongoDBData(object):
+
+    def __init__(self, dbhost='localhost',
+                 dbport=27017, dbusername=None,
+                 dbpassword=None, *args, **kwargs):
+        self.host = dbhost
+        self.port = dbport
+        self.username = dbusername
+        self.password = dbpassword
+
+    def _connect_mongo(self):
+        # Connection to MongoDB
+        if self.username and self.password:
+            conn = pymongo.MongoClient(host=self.host,
+                                       port=self.port,
+                                       username=self.username,
+                                       password=self.password)
+        else:
+            conn = pymongo.MongoClient(host=self.host,
+                                       port=self.port)
+        return conn
 
 # dbhost = "192.168.1.58"
 dbhost = 'localhost'
