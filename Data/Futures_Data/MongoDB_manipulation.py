@@ -30,3 +30,41 @@ for index in test_Coll.index_information():
     pprint.pprint(index)
 
 if __name__ == '__main__':
+    connection = pymongo.MongoClient('localhost', 27017)
+    coll = connection['test']['j1801']
+
+
+    timedelta_1s = pd.Timedelta(seconds=1)
+    timedelta_1m = pd.Timedelta(minutes=1)
+    timedelta_15m = pd.Timedelta(minutes=15)
+    start = datetime.datetime(2017, 8, 10, 1, 40, 49, 000)
+
+    coll.create_index([('datetime', pymongo.ASCENDING)])
+
+    for i in coll.find({'datetime': {'$gte': start,'$lte': start+timedelta_1s}}):
+        pprint.pprint(i)
+
+    query = [
+        {
+            '$limit':100
+        },
+        {
+            '$project': {
+                'High': { $max: "lastPrice"},
+                'Low': { $min: "lastPrice"},
+                'Open': {'datetime': {'$gte': start, '$lte': start + timedelta_1s}}
+            }
+        }
+    ]
+        'datetime': {'$gte': start, '$lte': start + timedelta_1m}
+    }
+
+    projection = {'lastPrice':}
+
+
+
+
+
+for i in coll.find({'date':'2017-09-25'}):
+    pprint.pprint(i)
+    break
