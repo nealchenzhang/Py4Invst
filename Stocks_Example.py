@@ -47,11 +47,11 @@ df_port_normal_log_ret_test = df_port_normal_ret_test.apply(np.log)
 # 2017年交易日
 trading_dates = pd.to_datetime(pd.Series(df_port_close.index))
 
-# 规则1：总账户30w 股价排序第一：5000股 第二：10000股 第三：15000股
+# 规则1：总账户39.52w 股价排序第一：5000股 第二：10000股 第三：15000股
 n1 = 5000
 n2 = 10000
 n3 = 15000
-init_port_value = 500000
+init_port_value = 395200
 
 # 参照组合
 # 每个月调整两次仓位 分别在月初（1日）和月中（15日）如非交易日递沿
@@ -102,12 +102,14 @@ df_trade_equity['PortValue'] = df_trade_equity.sum(axis='columns')
 dx1 = trading[0].strftime('%Y-%m-%d')
 df_trade_equity.loc[dx1, 'Cash'] = init_port_value - df_trade_equity.loc[dx1, 'PortValue']
 
+df_trade_equity['Cash'] = df_trade_equity['Cash'].fillna(0.0)
+# 计算持仓差值
+df_trade_diff = df_trade.diff()
 for i in trading[1:]:
     dx = i.strftime('%Y-%m-%d')
     il = df_trade_equity.index.get_loc(dx)
-    df_trade_equity.loc[dx, 'Cash'] = df_trade_equity.loc[dx, 'PortValue'] - df_trade_equity.iloc[il-1]['PortValue']
+    df_trade_equity.loc[dx, 'Cash'] = df_port_train.loc[dx].mul(-df_trade_diff.loc[dx], axis='index').sum() + df_trade_equity.iloc[il-1]['Cash']
 
-df_trade_equity['Cash'] = df_trade_equity['Cash'].fillna(0.0)
 df_trade_equity['Cash'] = df_trade_equity['Cash'].cumsum(axis='index', skipna=False)
 df_trade_equity['Total'] = df_trade_equity['Cash'] + df_trade_equity['PortValue']
 
