@@ -4,48 +4,76 @@ import pandas as pd
 import datetime
 import pprint
 
-number = '0123456789'
+class MongoDBData(object):
 
-connection = pymongo.MongoClient('localhost', 27017)
-# print all the collections in the DB
-collections = connection['Futures_Data'].collection_names()
+    def __init__(self, dbhost='localhost',
+                 dbport=27017, dbusername=None,
+                 dbpassword=None, *args, **kwargs):
+        super(MongoDBData, self).__init__(*args, **kwargs)
 
+        self.host = dbhost
+        self.port = dbport
+        self.username = dbusername
+        self.password = dbpassword
 
-futures_asset = [i.rstrip(number) for i in collections]
-futures_asset = list(set(futures_asset))
-contracts = []
-for i in collections:
-    # print(i.rstrip(number))
-    if i.rstrip(number) == futures_asset[0]:
-        contracts.append(i)
+    def _connect_mongo(self):
+        # Connection to MongoDB
+        if self.username and self.password:
+            conn = pymongo.MongoClient(host=self.host,
+                                       port=self.port,
+                                       username=self.username,
+                                       password=self.password)
+        else:
+            conn = pymongo.MongoClient(host=self.host,
+                                       port=self.port)
+        return conn
 
-jiao = 'j1709'
-
-test_Coll = connection['Futures_Data'][jiao]
-
-for index in test_Coll.index_information():
-    pprint.pprint(index)
-
-if __name__ == '__main__':
-    connection = pymongo.MongoClient('localhost', 27017)
-    coll = connection['test']['i1801']
-
+class tickData(object):
 
     timedelta_1s = pd.Timedelta(seconds=1)
     timedelta_1m = pd.Timedelta(minutes=1)
     timedelta_15m = pd.Timedelta(minutes=15)
 
+    def __init__(self, asset, ticker):
+        self.asset = asset
+        self.ticker = ticker
+
+    def tick2df(self, start, end):
+        conn = MongoDBData(dbhost='localhost', dbport=27017)._connect_mongo()
+        dbname = self.asset
+        coll_name = self.ticker
+
+        coll = conn[dbname][coll_name]
+        print('{}数据库链接成功'.format(dbname))
+        cursor = coll.find({'datetime': {'$gte': start, '$lte': end}})
+        df = pd.DataFrame(list(cursor))
+        df.set_index('datetime', inplace=True)
+        df.drop(['exchange', 'time', '_id'], axis=1, inplace=True)
+        print('{}从{}到{}的tick数据提取成功'.format(coll_name, start, end))
+        return df
+
+
+
+
+
+
+
+if __name__ == '__main__':
+
+    # timedelta_1s = pd.Timedelta(seconds=1)
+    # timedelta_1m = pd.Timedelta(minutes=1)
+    # timedelta_15m = pd.Timedelta(minutes=15)
+
     start = datetime.datetime(2017, 11, 13, 9, 00, 00, 000) - pd.Timedelta(hours=8)
-    end = datetime.datetime(2017, 11, 13, 15, 00, 00, 000)- pd.Timedelta(hours=8)
+    end = datetime.datetime(2017, 11, 14, 15, 00, 00, 000)- pd.Timedelta(hours=8)
     start_night = datetime.datetime(2017, 11, 10, 21, 00, 00, 000)
     end_night = datetime.datetime(2017, 11, 10, 23, 30, 00, 000)
 
-    coll.create_index([('datetime', pymongo.ASCENDING)])
+    # coll.create_index([('datetime', pymongo.ASCENDING)])
 
-    cursor_i1801 = coll.find({'datetime': {'$gte': start, '$lte': end}})
-    df_i1801 = pd.DataFrame(list(cursor_i1801))
-    df_i1801.set_index('datetime', inplace=True)
-    df_i1801.drop(['exchange', 'time', '_id'], axis=1, inplace=True)
+    i = tickData('tick_i', 'i1801')
+
+    df_i1801 = i.tick2df(start, end)
 
     ohlc_dict = {
         'Open': 'first',
@@ -83,3 +111,5 @@ if __name__ == '__main__':
     }
 
     df_15m_day = (df_1m_day.resample('15T', closed='left', label='left').apply(ohlc_dict)).dropna()
+
+assets_list = ['i', 'au']

@@ -19,13 +19,6 @@ import pymongo
 import numpy as np
 import pandas as pd
 
-# import re
-
-# import tushare as ts
-
-# ts.set_token('d42b6bb78dae5ca4b400e2629071640bc458b0f1f21eeef71823447ef980fb94')
-
-
 class FuturesData(object):
 
     def __init__(self, start_date, end_date, asset, basis='Daily'):
@@ -88,9 +81,6 @@ dbhost = 'localhost'
 dbport = 27017
 
 client = pymongo.MongoClient(host=dbhost, port=dbport)
-
-
-db = client.CTPMinuteDb
 
 
 
