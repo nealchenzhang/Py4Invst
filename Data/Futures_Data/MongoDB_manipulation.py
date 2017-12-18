@@ -102,12 +102,12 @@ class tickData(object):
             df_1m_night.loc[i, 'OI'] = tmp.iloc[-1]['openInterest']
         return df_1m_night
 
-    def df_1min_2MongoDB(self, tic):
-        conn = MongoDBData(dbhost='localhost', dbport=27017)._connect_mongo()
-        dbname = self.asset
-        coll_name = self.ticker
-
-        coll = conn[dbname][coll_name]
+    # def df_1min_2MongoDB(self, tic):
+    #     conn = MongoDBData(dbhost='localhost', dbport=27017)._connect_mongo()
+    #     dbname = self.asset
+    #     coll_name = self.ticker
+    #
+    #     coll = conn[dbname][coll_name]
 
     def df_15min(self, df):
         """
@@ -125,6 +125,13 @@ class tickData(object):
         df_15m = (df.resample('15T', closed='left', label='left').apply(ohlcvoi_dict)).dropna()
         return df_15m
 
+    # conn[dbname][tick].insert(json.loads(df.to_json(orient='index')))
+    # print('Data for {} Stored!'.format(tick))
+    #
+    # data = pd.DataFrame.from_dict(tmp[0]).T.drop('_id')
+    # print('Data for {} Retrieved!'.format(tick))
+    # return data
+
 if __name__ == '__main__':
 
     start = datetime.datetime(2017, 11, 13, 9, 00, 00, 000) - pd.Timedelta(hours=8)
@@ -135,7 +142,7 @@ if __name__ == '__main__':
     # coll.create_index([('datetime', pymongo.ASCENDING)])
 
     iron = tickData('tick_i', 'i1801')
-    iron = tickData('test', 'i1801')
+    # iron = tickData('test', 'i1801')
 
     df_i1801 = iron.tick2df(start, end)
     df_i1801_1m = iron.tick2OneMinute_day_session(start, end)
@@ -144,6 +151,17 @@ if __name__ == '__main__':
     # df_i1801_1m = iron.tick2OneMinute_night_session(start_night, end_night)
 
     df_i1801 = df_i1801_1m.append(iron.tick2OneMinute_night_session(start_night, end_night)).sort_index()
+
+    import json
+    #
+    # conn = pymongo.MongoClient('localhost', 27017)
+    # conn['1min_i']['x'].insert(json.loads(df_i1801.reset_index().T.to_json()).values())
+    # # print('Data for {} Stored!'.format(tick))
+    # tmp = list(conn['1min_i']['x'].find())
+    # data = pd.DataFrame.from_dict(tmp).drop('_id', axis=1)
+    # data.set_index('index', inplace=True)
+    # data.index = pd.to_datetime(data.index)
+
 
 
 
