@@ -1,39 +1,27 @@
-import pymongo
 import pandas as pd
+import numpy as np
+import datetime as dt
+import mpl_finance as mpf
+from matplotlib.pylab import date2num
+import matplotlib.pyplot as plt
+# df = df_rb1801_1m
+df = df.loc[:, ['Open', 'High', 'Low', 'Close']]
+Data_list = []
+for date, row in df.iterrows():
+    Date = date2num(date)
+    Open, High, Low, Close = row[:4]
+    Data = (Date, Open, High, Low, Close)
+    Data_list.append(Data)
 
-connection = pymongo.MongoClient('localhost', 27017)
-db = connection.CTP_tick
-
-# zn01 = db['zn1708']
-zn02 = db['zn1709']
-zn03 = db['zn1710']
-zn04 = db['zn1711']
-#
-# for i in collection.find_one({'date':'2017-08-10'}):
-#     pprint.pprint(i)
-
-df_zn = pd.DataFrame()
-
-time = pd.date_range('2017-08-10 13:30:00.000', end='2017-08-10 15:00:00.000', freq='500ms')
-dtstart = '13:30:00.0'
-dtend = '13:40:00.0'
-
-cursor_zn02 = zn02.find({'time':{'$gte':dtstart, '$lte':dtend}})
-cursor_zn03 = zn03.find({'time':{'$gte':dtstart, '$lte':dtend}})
-cursor_zn04 = zn04.find({'time':{'$gte':dtstart, '$lte':dtend}})
-
-
-df_zn02 = pd.DataFrame(list(cursor_zn02))
-df_zn03 = pd.DataFrame(list(cursor_zn03))
-df_zn04 = pd.DataFrame(list(cursor_zn04))
-df_zn =pd.DataFrame()
-
-df_zn['1_ask'] = df_zn02['askPrice1']
-df_zn['1_bid'] = df_zn02['bidPrice1']
-df_zn['2_ask'] = df_zn03['askPrice1']
-df_zn['2_bid'] = df_zn03['bidPrice1']
-df_zn['3_ask'] = df_zn04['askPrice1']
-df_zn['3_bid'] = df_zn04['bidPrice1']
-
-df_zn['spread_long'] = 2 * df_zn['2_ask'] - 1 * df_zn['1_bid'] - 1* df_zn['3_bid']
-df_zn['spread_short'] = - 2 * df_zn['2_bid'] + 1 * df_zn['1_ask'] + 1* df_zn['3_ask']
+fig, ax = plt.subplots()
+fig.subplots_adjust(bottom=0.2)
+# 设置X轴刻度为日期时间
+ax.xaxis_date()
+plt.xticks(rotation=45)
+plt.yticks()
+# plt.title("股票代码：002298两年K线图")
+# plt.xlabel("时间")
+# plt.ylabel("股价（元）")
+# mpf.candlestick_ohlc(ax,Data_list,width=0.00025,colorup='r',colordown='green')
+mpf.candlestick_ohlc(ax,Data_list,width=0.0025,colorup='r',colordown='green')
+plt.grid()

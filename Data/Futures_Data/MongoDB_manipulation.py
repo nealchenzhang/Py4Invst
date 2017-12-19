@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import datetime
 import pprint
+import json
 
 class MongoDBData(object):
 
@@ -31,7 +32,7 @@ class MongoDBData(object):
 class tickData(object):
     """
     input:
-        asset: 资产名称,对应MongoDB数据库相应数据库名
+        tick_DB: DB名称,对应MongoDB数据库相应数据库名
         ticker: 合约名称,对应MongoDB数据库名中的CollectionName
         start: 遵从数据库时间标准,国际标准时间
         end: 遵从数据库时间标准,国际标准时间
@@ -41,23 +42,23 @@ class tickData(object):
     timedelta_15m = pd.Timedelta(minutes=15)
     timedelta_utc = pd.Timedelta(hours=8)
 
-    def __init__(self, asset, ticker):
-        self.asset = asset
+    def __init__(self, tick_DB, ticker):
+        self.tick_DB = tick_DB
         self.ticker = ticker
 
     def tick2df(self, start, end):
         conn = MongoDBData(dbhost='localhost', dbport=27017)._connect_mongo()
-        dbname = self.asset
+        dbname = self.tick_DB
         coll_name = self.ticker
 
         coll = conn[dbname][coll_name]
-        # print('{}数据库链接成功'.format(dbname))
         cursor = coll.find({'datetime': {'$gte': start, '$lte': end}})
         df = pd.DataFrame(list(cursor))
-        # return df
+        # df['datetime'] = df['datetime'].apply(pd.to_datetime)
         df.set_index('datetime', inplace=True)
         df.drop(['exchange', 'time', '_id'], axis=1, inplace=True)
         # print('{}从{}到{}的tick数据提取成功'.format(coll_name, start, end))
+        df = df.sort_index()
         return df
 
     def tick2OneMinute_day_session(self, start, end):
@@ -91,6 +92,7 @@ class tickData(object):
                                                freq='1min')
         df_1m_night = pd.DataFrame(index=night_trade_time_index)
         df = self.tick2df(start, end)
+        # print(night_trade_time_index)
         for i in night_trade_time_index:
             tmp = df.loc[i-self.timedelta_utc: i-self.timedelta_utc+pd.Timedelta(minutes=1)-pd.Timedelta(milliseconds=1),
                   ['lastPrice', 'openInterest', 'volume']]
@@ -102,12 +104,21 @@ class tickData(object):
             df_1m_night.loc[i, 'OI'] = tmp.iloc[-1]['openInterest']
         return df_1m_night
 
-    # def df_1min_2MongoDB(self, tic):
-    #     conn = MongoDBData(dbhost='localhost', dbport=27017)._connect_mongo()
-    #     dbname = self.asset
-    #     coll_name = self.ticker
-    #
-    #     coll = conn[dbname][coll_name]
+    def df_1min_2MongoDB(self, df, dbname, coll_name):
+        conn = MongoDBData(dbhost='localhost', dbport=27017)._connect_mongo()
+        df = df.reset_index().rename(columns={'index': 'datetime'})
+        df['datetime'] = df['datetime'].apply(lambda x: x.strftime("%Y-%m-%d %H:%M:%S"))
+        records = json.loads(df.T.to_json()).values()
+        conn[dbname][coll_name].insert(records)
+        print('Data for {} Stored!'.format(self.ticker))
+
+    def df_1min_fromMongoDB(self, dbname, coll_name):
+        conn = MongoDBData(dbhost='localhost', dbport=27017)._connect_mongo()
+        tmp = list(conn[dbname][coll_name].find())
+        df = pd.DataFrame.from_dict(tmp).drop('_id', axis=1)
+        df['datetime'] = df['datetime'].apply(pd.to_datetime)
+        df.set_index('datetime', inplace=True)
+        return df
 
     def df_15min(self, df):
         """
@@ -125,50 +136,36 @@ class tickData(object):
         df_15m = (df.resample('15T', closed='left', label='left').apply(ohlcvoi_dict)).dropna()
         return df_15m
 
-    # conn[dbname][tick].insert(json.loads(df.to_json(orient='index')))
-    # print('Data for {} Stored!'.format(tick))
-    #
-    # data = pd.DataFrame.from_dict(tmp[0]).T.drop('_id')
-    # print('Data for {} Retrieved!'.format(tick))
-    # return data
-
 if __name__ == '__main__':
 
-    start = datetime.datetime(2017, 11, 13, 9, 00, 00, 000) - pd.Timedelta(hours=8)
-    end = datetime.datetime(2017, 11, 14, 15, 00, 00, 000)- pd.Timedelta(hours=8)
-    start_night = datetime.datetime(2017, 11, 10, 21, 00, 00, 000) - pd.Timedelta(hours=8)
-    end_night = datetime.datetime(2017, 11, 10, 23, 30, 00, 000) - pd.Timedelta(hours=8)
-
-    # coll.create_index([('datetime', pymongo.ASCENDING)])
-
-    iron = tickData('tick_i', 'i1801')
-    # iron = tickData('test', 'i1801')
-
-    df_i1801 = iron.tick2df(start, end)
-    df_i1801_1m = iron.tick2OneMinute_day_session(start, end)
-
-    # df_i1801_night = iron.tick2df(start_night, end_night)
-    # df_i1801_1m = iron.tick2OneMinute_night_session(start_night, end_night)
-
-    df_i1801 = df_i1801_1m.append(iron.tick2OneMinute_night_session(start_night, end_night)).sort_index()
-
-    import json
-    #
-    # conn = pymongo.MongoClient('localhost', 27017)
-    # conn['1min_i']['x'].insert(json.loads(df_i1801.reset_index().T.to_json()).values())
-    # # print('Data for {} Stored!'.format(tick))
-    # tmp = list(conn['1min_i']['x'].find())
-    # data = pd.DataFrame.from_dict(tmp).drop('_id', axis=1)
-    # data.set_index('index', inplace=True)
-    # data.index = pd.to_datetime(data.index)
+    asset = tickData('tick_rb', 'rb1801')
+    # 品种不同 night_delta不同
+    night_delta = pd.Timedelta(hours=2)
+    start = '2017-11-01'
+    end = '2017-11-02'
+    research_daterange = pd.bdate_range(start, end)
+    for i in research_daterange:
+        if i.isoweekday() == 1:
+            start_night_trade = datetime.datetime(i.year, i.month, i.day, 21, 00, 00, 000) - pd.Timedelta(days=3) - pd.Timedelta(hours=8)
+            end_night_trade = datetime.datetime(i.year, i.month, i.day, 21, 00, 00, 000) - pd.Timedelta(days=3) + night_delta - pd.Timedelta(hours=8)
+            start_day_trade = datetime.datetime(i.year, i.month, i.day, 9, 00, 00, 000) - pd.Timedelta(hours=8)
+            end_day_trade = datetime.datetime(i.year, i.month, i.day, 15, 00, 00, 000) - pd.Timedelta(hours=8)
+        else:
+            start_night_trade = datetime.datetime(i.year, i.month, i.day, 21, 00, 00, 000) - pd.Timedelta(
+                days=1) - pd.Timedelta(hours=8)
+            end_night_trade = datetime.datetime(i.year, i.month, i.day, 21, 00, 00, 000) - pd.Timedelta(
+                days=1) + night_delta - pd.Timedelta(hours=8)
+            start_day_trade = datetime.datetime(i.year, i.month, i.day, 9, 00, 00, 000) - pd.Timedelta(hours=8)
+            end_day_trade = datetime.datetime(i.year, i.month, i.day, 15, 00, 00, 000) - pd.Timedelta(hours=8)
 
 
+        df_rb1801_night = asset.tick2OneMinute_night_session(start_night_trade, end_night_trade)
+        print('{}{}到{}夜盘数据已改成1min数据'.format('rb1801', start_night_trade+asset.timedelta_utc, end_night_trade+asset.timedelta_utc))
+        df_rb1801_day = asset.tick2OneMinute_day_session(start_day_trade, end_day_trade)
+        print('{}{}到{}白天数据已改成1min数据'.format('rb1801', start_day_trade + asset.timedelta_utc,
+                                            end_day_trade + asset.timedelta_utc))
 
+        df_rb1801_1m = df_rb1801_night.append(df_rb1801_day).sort_index()
+        asset.df_1min_2MongoDB(df_rb1801_1m, '1min_rb_test', 'rb1801')
 
-
-
-
-
-
-
-# assets_list = ['i', 'au']
+        df = asset.df_15min(df_rb1801_1m)
