@@ -1,7 +1,7 @@
 import pymongo
 import numpy as np
 import pandas as pd
-import datetime
+import datetime as dt
 import pprint
 import json
 
@@ -141,31 +141,45 @@ if __name__ == '__main__':
     asset = tickData('tick_rb', 'rb1801')
     # 品种不同 night_delta不同
     night_delta = pd.Timedelta(hours=2)
-    start = '2017-11-01'
-    end = '2017-11-02'
+    start = '2017-11-27'
+    end = '2017-12-15'
     research_daterange = pd.bdate_range(start, end)
     for i in research_daterange:
         if i.isoweekday() == 1:
-            start_night_trade = datetime.datetime(i.year, i.month, i.day, 21, 00, 00, 000) - pd.Timedelta(days=3) - pd.Timedelta(hours=8)
-            end_night_trade = datetime.datetime(i.year, i.month, i.day, 21, 00, 00, 000) - pd.Timedelta(days=3) + night_delta - pd.Timedelta(hours=8)
-            start_day_trade = datetime.datetime(i.year, i.month, i.day, 9, 00, 00, 000) - pd.Timedelta(hours=8)
-            end_day_trade = datetime.datetime(i.year, i.month, i.day, 15, 00, 00, 000) - pd.Timedelta(hours=8)
+            start_night_trade = dt.datetime(i.year, i.month, i.day, 21, 00, 00, 000) -\
+                                pd.Timedelta(days=3) - pd.Timedelta(hours=8)
+            end_night_trade = dt.datetime(i.year, i.month, i.day, 21, 00, 00, 000) - \
+                              pd.Timedelta(days=3) + night_delta - pd.Timedelta(hours=8)
+            start_day_trade = dt.datetime(i.year, i.month, i.day, 9, 00, 00, 000) - \
+                              pd.Timedelta(hours=8)
+            end_day_trade = dt.datetime(i.year, i.month, i.day, 15, 00, 00, 000) - \
+                            pd.Timedelta(hours=8)
         else:
-            start_night_trade = datetime.datetime(i.year, i.month, i.day, 21, 00, 00, 000) - pd.Timedelta(
-                days=1) - pd.Timedelta(hours=8)
-            end_night_trade = datetime.datetime(i.year, i.month, i.day, 21, 00, 00, 000) - pd.Timedelta(
-                days=1) + night_delta - pd.Timedelta(hours=8)
-            start_day_trade = datetime.datetime(i.year, i.month, i.day, 9, 00, 00, 000) - pd.Timedelta(hours=8)
-            end_day_trade = datetime.datetime(i.year, i.month, i.day, 15, 00, 00, 000) - pd.Timedelta(hours=8)
+            start_night_trade = dt.datetime(i.year, i.month, i.day, 21, 00, 00, 000) -\
+                                pd.Timedelta(days=1) - pd.Timedelta(hours=8)
+            end_night_trade = dt.datetime(i.year, i.month, i.day, 21, 00, 00, 000) - \
+                              pd.Timedelta(days=1) + night_delta - pd.Timedelta(hours=8)
+            start_day_trade = dt.datetime(i.year, i.month, i.day, 9, 00, 00, 000) - \
+                              pd.Timedelta(hours=8)
+            end_day_trade = dt.datetime(i.year, i.month, i.day, 15, 00, 00, 000) - \
+                            pd.Timedelta(hours=8)
 
+        try:
+            df_night = asset.tick2OneMinute_night_session(start_night_trade, end_night_trade)
+            print('{}{}到{}夜盘数据已改成1min数据'.format('rb1801', start_night_trade+asset.timedelta_utc,
+                                                end_night_trade+asset.timedelta_utc))
+            df_day = asset.tick2OneMinute_day_session(start_day_trade, end_day_trade)
+            print('{}{}到{}白天数据已改成1min数据'.format('rb1801', start_day_trade + asset.timedelta_utc,
+                                                end_day_trade + asset.timedelta_utc))
 
-        df_rb1801_night = asset.tick2OneMinute_night_session(start_night_trade, end_night_trade)
-        print('{}{}到{}夜盘数据已改成1min数据'.format('rb1801', start_night_trade+asset.timedelta_utc, end_night_trade+asset.timedelta_utc))
-        df_rb1801_day = asset.tick2OneMinute_day_session(start_day_trade, end_day_trade)
-        print('{}{}到{}白天数据已改成1min数据'.format('rb1801', start_day_trade + asset.timedelta_utc,
-                                            end_day_trade + asset.timedelta_utc))
+            df_1m = df_night.append(df_day).sort_index()
+            asset.df_1min_2MongoDB(df_1m, '1min_rb', 'rb1801')
+        except:
+            print(df_night)
+            try:
+                print(df_day)
+            except: pass
+            pass
+        # print('{}到{}的数据已转成1min并导入{}中'.format(start, end, 'rb1801'))
 
-        df_rb1801_1m = df_rb1801_night.append(df_rb1801_day).sort_index()
-        asset.df_1min_2MongoDB(df_rb1801_1m, '1min_rb_test', 'rb1801')
-
-        df = asset.df_15min(df_rb1801_1m)
+        # df = asset.df_15min(df_1m)
