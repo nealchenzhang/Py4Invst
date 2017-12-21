@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 # mpf.candlestick_ohlc(ax,Data_list,width=0.0025,colorup='r',colordown='green')
 # plt.grid()
 
-from Data.Futures_Data.MongoDB_manipulation import *
+from Data.Futures_Data.MongoDB_manipulation import tickData
 import pandas as pd
 import numpy as np
 import datetime as dt
@@ -37,8 +37,14 @@ df_research_1min = df_1m.loc[start:].sort_index()
 df_research_15min = asset.df_15min(df_research_1min)
 # 均线系统策略
 # 1min均线处理
-fig, ax1 = plt.subplots()
-df_research_1min['Close'].plot(ax=ax1)
+fig, ax1 = plt.subplots(sharex=True)
+df_research_1min['Close'].plot(ax=ax1, label='Close')
 MA_1min_20 = df_research_1min['Close'].rolling(window=20).mean()
-MA_1min_20.plot(ax=ax1)
+MA_1min_20.name = 'MA20'
+MA_1min_20.plot(ax=ax1, label='MA20', linestyle='--')
+
 # 15min均线
+fig, ax1 = plt.subplots(sharex=True)
+df_research_15min['Close'].reset_index().plot(ax=ax1, alpha=0.7)
+MA_15min_20 = df_research_15min['Close'].rolling(window=20).mean()
+MA_15min_20.reset_index().plot(ax=ax1, linestyle='--', alpha=0.7)
