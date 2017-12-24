@@ -85,15 +85,3 @@ class Analyzer(object):
 
     def get_df(self):
         return self.__df_port
-
-
-if __name__ == "__main__":
-    x = Analyzer("D:/Neal/Quant/PythonProject/ValuesFile/values1.csv")
-    print(dir(x))
-    x.description()
-    try:
-        x.__start_date = '2017'
-        print(x.__start_date)
-        x.description()
-    except:
-       pass

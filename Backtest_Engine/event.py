@@ -141,7 +141,7 @@ class FillEvent(Event):
             self.commission = commission
 
         # Calculate margin
-        if
+        # if
 
 
     def calculate_ib_commission(self):
@@ -172,5 +172,5 @@ class FillEvent(Event):
             full_cost = max(1.3, 0.008 * self.quantity)
         return full_cost
 
-    def calculate_margin(self):
-        self.symbol
+    # def calculate_margin(self):
+    #     self.symbol

@@ -101,12 +101,3 @@ class Draw_Down(Analyzer):
 
     def Drawdown_Duration_end(self):
         return self.MaxDrawDown_end
-
-# if __name__ == "__main__":
-#     x = Draw_Down("D:/Neal/Quant/PythonProject/ValuesFile/values1.csv")
-#     # print(dir(x))
-#     # x.description()
-#     # print(x.get_df())
-#     # print(x.getName())
-#     # print(x.getUrl())
-#     print(x.drawdown, x.HWM(), x.highwatermark)

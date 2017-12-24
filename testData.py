@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 # mpf.candlestick_ohlc(ax,Data_list,width=0.0025,colorup='r',colordown='green')
 # plt.grid()
 
-from Data.Futures_Data.MongoDB_manipulation import tickData
+from Data.Futures_Data.MongoDB_Futures import tickData
 import pandas as pd
 import numpy as np
 import datetime as dt

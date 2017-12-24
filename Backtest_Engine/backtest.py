@@ -6,10 +6,7 @@ from __future__ import print_function
 
 import datetime
 import pprint
-try:
-    import Queue as queue
-except ImportError:
-    import queue
+import queue
 import time
 
 
