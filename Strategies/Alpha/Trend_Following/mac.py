@@ -56,7 +56,7 @@ class MovingAverageCrossStrategy(Strategy):
         """
         if event.type == 'MARKET':
             for symbol in self.symbol_list:
-                bars = self.bars.get_latest_bars_values(symbol, "close", N=self.long_window)               
+                bars = self.bars.get_latest_bars_values(symbol, "Close", N=self.long_window)
 
                 if bars is not None and bars != []:
                     short_sma = np.mean(bars[-self.short_window:])
@@ -84,10 +84,10 @@ if __name__ == "__main__":
     dbname = "Stocks_Data"
     symbol_list = ['AAPL']
     initial_capital = 100000.0
-    start_date = datetime.datetime(2010,1,1,0,0,0)
+    start_date = datetime.datetime(2012,1,1,0,0,0)
     heartbeat = 0.0
 
-    backtest = Backtest(csv_dir, 
+    backtest = Backtest(dbname,
                         symbol_list, 
                         initial_capital, 
                         heartbeat,

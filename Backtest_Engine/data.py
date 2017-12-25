@@ -132,7 +132,7 @@ class HistoricalMongoDataHandler(DataHandler):
         for s in self.symbol_list:
             # Load the data from symbol database for specific time period,
             # indexed on datetime
-            self.symbol_data[s] = tickData(self.dbname, s).df_1min_fromMongoDB(self.dbname, s)
+            self.symbol_data[s] = tickData(self.dbname, s).df_fromMongoDB(self.dbname, s)
 
             # Combine the index to pad forward values
             if comb_index is None:
@@ -231,7 +231,7 @@ class HistoricalMongoDataHandler(DataHandler):
             print("That symbol is not available in the historical data set.")
             raise
         else:
-            return np.array([getattr(b[1], val_type) for b in bars_list)
+            return np.array([getattr(b[1], val_type) for b in bars_list])
 
     def update_bars(self):
         """

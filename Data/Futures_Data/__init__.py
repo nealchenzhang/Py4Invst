@@ -18,7 +18,6 @@
 
 """
 """
-from .tickData import *
 
 __author__ = 'Neal Chen Zhang'
 
