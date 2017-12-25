@@ -2,8 +2,6 @@
 
 # backtest.py
 
-from __future__ import print_function
-
 import datetime
 import pprint
 import queue
@@ -16,16 +14,14 @@ class Backtest(object):
     an event-driven backtest.
     """
 
-    def __init__(
-        self, csv_dir, symbol_list, initial_capital,
-        heartbeat, start_date, data_handler, 
-        execution_handler, portfolio, strategy
-    ):
+    def __init__(self, dbname, symbol_list, initial_capital,
+                 heartbeat, start_date, data_handler,
+                 execution_handler, portfolio, strategy):
         """
         Initialises the backtest.
 
         Parameters:
-        csv_dir - The hard root to the CSV data directory.
+        dbname - The Database name for different time period.
         symbol_list - The list of symbol strings.
         intial_capital - The starting capital for the portfolio.
         heartbeat - Backtest "heartbeat" in seconds
@@ -35,7 +31,7 @@ class Backtest(object):
         portfolio - (Class) Keeps track of portfolio current and prior positions.
         strategy - (Class) Generates signals based on market data.
         """
-        self.csv_dir = csv_dir
+        self.dbname = dbname
         self.symbol_list = symbol_list
         self.initial_capital = initial_capital
         self.heartbeat = heartbeat
@@ -60,10 +56,8 @@ class Backtest(object):
         Generates the trading instance objects from 
         their class types.
         """
-        print(
-            "Creating DataHandler, Strategy, Portfolio and ExecutionHandler"
-        )
-        self.data_handler = self.data_handler_cls(self.events, self.csv_dir, self.symbol_list)
+        print("Creating DataHandler, Strategy, Portfolio and ExecutionHandler")
+        self.data_handler = self.data_handler_cls(self.events, self.dbname, self.symbol_list)
         self.strategy = self.strategy_cls(self.data_handler, self.events)
         self.portfolio = self.portfolio_cls(self.data_handler, self.events, self.start_date, 
                                             self.initial_capital)

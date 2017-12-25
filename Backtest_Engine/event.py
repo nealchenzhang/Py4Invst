@@ -38,7 +38,7 @@ class SignalEvent(Event):
         strategy_id - The unique ID of the strategy sending the signal.
         symbol - The ticker symbol, e.g. 'GOOG'.
         datetime - The timestamp at which the signal was generated.
-        signal_type - 'LONG' or 'SHORT'.
+        TODO: signal_type - 'LONG' or 'SHORT'|| 'OPEN' or 'CLOSE'
         strength - An adjustment factor "suggestion" used to scale 
             quantity at the portfolio level. Useful for pairs strategies.
         """

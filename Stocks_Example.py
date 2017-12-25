@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import datetime as dt
+import datetime
 import mpl_finance as mpf
 from matplotlib.pylab import date2num
 import matplotlib.pyplot as plt

@@ -1,9 +1,6 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
 # portfolio.py
-
-from __future__ import print_function
 
 import datetime
 from math import floor
@@ -170,7 +167,7 @@ class Portfolio(object):
 
         # Update holdings list with new quantities
         fill_cost = self.bars.get_latest_bar_value(
-            fill.symbol, "adj_close"
+            fill.symbol, "Close"
         )
         cost = fill_dir * fill_cost * fill.quantity
         self.current_holdings[fill.symbol] += cost

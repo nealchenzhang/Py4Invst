@@ -21,7 +21,7 @@ This class Fund is used as single fund of the funds portfolio.
 """
 print(__doc__)
 
-import datetime as dt
+import datetime
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np

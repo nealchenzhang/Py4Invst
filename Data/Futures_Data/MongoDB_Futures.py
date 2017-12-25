@@ -1,7 +1,7 @@
 import pymongo
 import numpy as np
 import pandas as pd
-import datetime as dt
+import datetime
 import pprint
 import json
 
@@ -146,22 +146,22 @@ if __name__ == '__main__':
     research_daterange = pd.bdate_range(start, end)
     for i in research_daterange:
         if i.isoweekday() == 1:
-            start_night_trade = dt.datetime(i.year, i.month, i.day, 21, 00, 00, 000) -\
+            start_night_trade = datetime.datetime(i.year, i.month, i.day, 21, 00, 00, 000) -\
                                 pd.Timedelta(days=3) - pd.Timedelta(hours=8)
-            end_night_trade = dt.datetime(i.year, i.month, i.day, 21, 00, 00, 000) - \
+            end_night_trade = datetime.datetime(i.year, i.month, i.day, 21, 00, 00, 000) - \
                               pd.Timedelta(days=3) + night_delta - pd.Timedelta(hours=8)
-            start_day_trade = dt.datetime(i.year, i.month, i.day, 9, 00, 00, 000) - \
+            start_day_trade = datetime.datetime(i.year, i.month, i.day, 9, 00, 00, 000) - \
                               pd.Timedelta(hours=8)
-            end_day_trade = dt.datetime(i.year, i.month, i.day, 15, 00, 00, 000) - \
+            end_day_trade = datetime.datetime(i.year, i.month, i.day, 15, 00, 00, 000) - \
                             pd.Timedelta(hours=8)
         else:
-            start_night_trade = dt.datetime(i.year, i.month, i.day, 21, 00, 00, 000) -\
+            start_night_trade = datetime.datetime(i.year, i.month, i.day, 21, 00, 00, 000) -\
                                 pd.Timedelta(days=1) - pd.Timedelta(hours=8)
-            end_night_trade = dt.datetime(i.year, i.month, i.day, 21, 00, 00, 000) - \
+            end_night_trade = datetime.datetime(i.year, i.month, i.day, 21, 00, 00, 000) - \
                               pd.Timedelta(days=1) + night_delta - pd.Timedelta(hours=8)
-            start_day_trade = dt.datetime(i.year, i.month, i.day, 9, 00, 00, 000) - \
+            start_day_trade = datetime.datetime(i.year, i.month, i.day, 9, 00, 00, 000) - \
                               pd.Timedelta(hours=8)
-            end_day_trade = dt.datetime(i.year, i.month, i.day, 15, 00, 00, 000) - \
+            end_day_trade = datetime.datetime(i.year, i.month, i.day, 15, 00, 00, 000) - \
                             pd.Timedelta(hours=8)
 
         try:

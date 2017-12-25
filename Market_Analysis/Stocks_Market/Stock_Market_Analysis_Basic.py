@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import datetime as dt
+import datetime
 import matplotlib.pyplot as plt
 # Candlestick plot
 try:
@@ -107,7 +107,7 @@ class Stock_Analysis(object):
         most_volume_dates = df.sort_values('Volume', ascending=False)['Volume'][:10]
         print(most_volume_dates)
         print('Find out what happened on most volume day.')
-        str_keyword = dt.datetime.strftime(most_volume_dates.argmax(), '%Y-%m-%d')+\
+        str_keyword = datetime.datetime.strftime(most_volume_dates.argmax(), '%Y-%m-%d')+\
                       ' ' + self.name
 
         sina_keyword = urllib.parse.quote(str_keyword, encoding='gb2312')

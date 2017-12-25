@@ -1,12 +1,12 @@
 import datetime
 import numpy as np
 
-from backtest import Backtest
-from data import HistoricCSVDataHandler
-from event import SignalEvent
-from execution import SimulatedExecutionHandler
-from portfolio import Portfolio
-from strategy import Strategy
+from Backtest_Engine.backtest import Backtest
+from Backtest_Engine.data import HistoricalMongoDataHandler
+from Backtest_Engine.event import SignalEvent
+from Backtest_Engine.execution import SimulatedExecutionHandler
+from Backtest_Engine.portfolio import Portfolio
+from Backtest_Engine.strategy import Strategy
 
 
 class MovingAverageCrossStrategy(Strategy):
@@ -81,10 +81,10 @@ class MovingAverageCrossStrategy(Strategy):
 
 
 if __name__ == "__main__":
-    csv_dir = REPLACE_WITH_YOUR_CSV_DIR_HERE
+    dbname = "Stocks_Data"
     symbol_list = ['AAPL']
     initial_capital = 100000.0
-    start_date = datetime.datetime(1990,1,1,0,0,0)
+    start_date = datetime.datetime(2010,1,1,0,0,0)
     heartbeat = 0.0
 
     backtest = Backtest(csv_dir, 
@@ -92,7 +92,7 @@ if __name__ == "__main__":
                         initial_capital, 
                         heartbeat,
                         start_date,
-                        HistoricCSVDataHandler, 
+                        HistoricalMongoDataHandler,
                         SimulatedExecutionHandler, 
                         Portfolio, 
                         MovingAverageCrossStrategy)

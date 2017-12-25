@@ -17,7 +17,7 @@
 
 import numpy as np
 import pandas as pd
-import datetime as dt
+import datetime
 import mpl_finance as mpf
 from matplotlib.pylab import date2num
 import matplotlib.pyplot as plt
@@ -35,7 +35,7 @@ df = df.loc[:, ['open', 'high', 'low', 'close']]
 
 Data_list = []
 for date, row in df.iterrows():
-    Date = date2num(dt.datetime.strptime(date, "%Y-%m-%d"))
+    Date = date2num(datetime.datetime.strptime(date, "%Y-%m-%d"))
     Open, High, Low, Close = row[:4]
     Data = (Date, Open, High, Low, Close)
     Data_list.append(Data)

@@ -3,7 +3,7 @@
 # data.py
 
 from abc import ABCMeta, abstractmethod
-import datetime as dt
+import datetime
 import queue
 
 import numpy as np

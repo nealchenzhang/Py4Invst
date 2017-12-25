@@ -16,6 +16,6 @@
 
 ###############################################################################
 
-import datetime as dt
+import datetime
 
-__version__ = 'Keep calm and carry on, Neal! '+'0.0.1.1 '+ str(dt.datetime.today())
+__version__ = 'Keep calm and carry on, Neal! '+'0.0.1.1 '+ str(datetime.datetime.today())

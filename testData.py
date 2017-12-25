@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import datetime as dt
+import datetime
 import mpl_finance as mpf
 from matplotlib.pylab import date2num
 import matplotlib.pyplot as plt
@@ -26,13 +26,13 @@ import matplotlib.pyplot as plt
 from Data.Futures_Data.MongoDB_Futures import tickData
 import pandas as pd
 import numpy as np
-import datetime as dt
+import datetime
 import matplotlib.pyplot as plt
 
 # 研究时间从2017年11月28日（27日夜盘）开始至2017年12月15日收盘
 asset = tickData('tick_rb', 'rb1801')
 df_1m = asset.df_1min_fromMongoDB('1min_rb', 'rb1801')
-start = dt.datetime(2017, 11, 27, 21, 00,00,000)
+start = datetime.datetime(2017, 11, 27, 21, 00,00,000)
 df_research_1min = df_1m.loc[start:].sort_index()
 df_research_15min = asset.df_15min(df_research_1min)
 # 均线系统策略
