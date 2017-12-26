@@ -9,7 +9,6 @@ import queue
 import numpy as np
 import pandas as pd
 
-from Backtest_Engine.event import SignalEvent
 
 class Strategy(object):
     """

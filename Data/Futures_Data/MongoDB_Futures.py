@@ -5,6 +5,7 @@ import datetime
 import pprint
 import json
 
+
 class MongoDBData(object):
 
     def __init__(self, dbhost='localhost',
@@ -28,6 +29,17 @@ class MongoDBData(object):
             conn = pymongo.MongoClient(host=self.host,
                                        port=self.port)
         return conn
+
+
+def df_fromMongoDB(dbname, coll_name, dbhost='localhost', dbport=27017,
+                   dbusername=None, dbpassword=None):
+    conn = MongoDBData(dbhost, dbport, dbusername, dbpassword)._connect_mongo()
+    tmp = list(conn[dbname][coll_name].find())
+    df = pd.DataFrame.from_dict(tmp).drop('_id', axis=1)
+    df['datetime'] = df['datetime'].apply(pd.to_datetime)
+    df.set_index('datetime', inplace=True)
+    df = df.sort_index()
+    return df
 
 class tickData(object):
     """
@@ -135,15 +147,6 @@ class tickData(object):
         }
         df_15m = (df.resample('15T', closed='left', label='left').apply(ohlcvoi_dict)).dropna()
         return df_15m
-
-    def df_fromMongoDB(self, dbname, coll_name):
-        conn = MongoDBData(dbhost='localhost', dbport=27017)._connect_mongo()
-        tmp = list(conn[dbname][coll_name].find())
-        df = pd.DataFrame.from_dict(tmp[0]).drop('_id', axis=1).T
-        df['datetime'] = df['datetime'].apply(pd.to_datetime)
-        df.set_index('datetime', inplace=True)
-        df = df.sort_index()
-        return df
 
 if __name__ == '__main__':
 

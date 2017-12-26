@@ -9,7 +9,7 @@ import os
 import numpy as np
 import pandas as pd
 
-from Data.Futures_Data.MongoDB_Futures import tickData
+from Data.Futures_Data.MongoDB_Futures import df_fromMongoDB
 
 from Backtest_Engine.event import MarketEvent
 
@@ -132,7 +132,7 @@ class HistoricalMongoDataHandler(DataHandler):
         for s in self.symbol_list:
             # Load the data from symbol database for specific time period,
             # indexed on datetime
-            self.symbol_data[s] = tickData(self.dbname, s).df_fromMongoDB(self.dbname, s)
+            self.symbol_data[s] = df_fromMongoDB(self.dbname, s)
 
             # Combine the index to pad forward values
             if comb_index is None:

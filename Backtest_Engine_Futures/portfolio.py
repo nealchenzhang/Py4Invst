@@ -3,14 +3,14 @@
 # portfolio.py
 
 import datetime
-from math import floor
 import queue
+import os
 
 import numpy as np
 import pandas as pd
 
-from Backtest_Engine.event import FillEvent, OrderEvent
-from Backtest_Engine.performance import create_sharpe_ratio, create_drawdowns
+from Backtest_Engine_Futures.event import FillEvent, OrderEvent
+from Backtest_Engine_Futures.performance import create_sharpe_ratio, create_drawdowns
 
 
 class Portfolio(object):
@@ -185,6 +185,8 @@ class Portfolio(object):
             self.update_holdings_from_fill(event)
 
     def generate_naive_order(self, signal):
+        # TODO: direction = signal_type:
+        # TODO: direction:"LONG OPEN | SHORT OPEN | CLOSE TODAY | CLOSE"
         """
         Simply files an Order object as a constant quantity
         sizing of the signal object, without risk management or
@@ -256,4 +258,5 @@ class Portfolio(object):
                  ("Drawdown Duration", "%d" % dd_duration)]
 
         self.equity_curve.to_csv('equity.csv')
+        print(os.getcwd())
         return stats

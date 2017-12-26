@@ -2,6 +2,7 @@
 
 # event.py
 
+
 class Event(object):
     """
     Event is base class providing an interface for all subsequent 
@@ -30,15 +31,17 @@ class SignalEvent(Event):
     This is received by a Portfolio object and acted upon.
     """
     
-    def __init__(self, strategy_id, symbol, datetime, signal_type, strength):
+    def __init__(self, strategy_id, symbol, datetime,
+                 signal_type, position_type, strength):
         """
         Initialises the SignalEvent.
 
         Parameters:
         strategy_id - The unique ID of the strategy sending the signal.
-        symbol - The ticker symbol, e.g. 'GOOG'.
+        symbol - The ticker symbol, e.g. 'rb1801'.
         datetime - The timestamp at which the signal was generated.
-        TODO: signal_type - 'LONG' or 'SHORT'|| 'OPEN' or 'CLOSE'
+        signal_type - 'LONG' or 'SHORT'
+        position_type - 'OPEN' or 'CLOSE' or 'CLOSE_T0'
         strength - An adjustment factor "suggestion" used to scale 
             quantity at the portfolio level. Useful for pairs strategies.
         """
@@ -47,6 +50,7 @@ class SignalEvent(Event):
         self.symbol = symbol
         self.datetime = datetime
         self.signal_type = signal_type
+        self.position_type = position_type
         self.strength = strength
 
 
@@ -54,15 +58,15 @@ class OrderEvent(Event):
     """
     Handles the event of sending an Order to an execution system.
     The order contains a symbol (e.g. GOOG), a type (market or limit),
-    quantity and a direction.
+    quantity ,direction, and position_signal.
     """
 
-    def __init__(self, symbol, order_type, quantity, direction):
+    def __init__(self, symbol, order_type, quantity, direction, position_type):
         """
         Initialises the order type, setting whether it is
         a Market order ('MKT') or Limit order ('LMT'), has
-        a quantity (integral) and its direction ('BUY' or
-        'SELL').
+        a quantity (integral), its direction ('LONG' or
+        'SHORT'), and its position_signal ('')
 
             TODO: Must handle error checking here to obtain
             rational orders (i.e. no negative quantities etc).
@@ -71,21 +75,23 @@ class OrderEvent(Event):
         symbol - The instrument to trade.
         order_type - 'MKT' or 'LMT' for Market or Limit.
         quantity - Non-negative integer for quantity.
-        direction - 'BUY' or 'SELL' for long or short.
+        direction - 'LONG' or 'SHORT'.
+        position_type - 'OPEN', 'CLOSE' or 'CLOSE_T0'
         """
         self.type = 'ORDER'
         self.symbol = symbol
         self.order_type = order_type
         self.quantity = quantity
         self.direction = direction
+        self.position_type = position_type
 
     def print_order(self):
         """
         Outputs the values within the Order.
         """
         print(
-            "Order: Symbol=%s, Type=%s, Quantity=%s, Direction=%s" % 
-            (self.symbol, self.order_type, self.quantity, self.direction)
+            "Order: Symbol=%s, Type=%s, Quantity=%s, Direction=%s, Position_type=%s" %
+            (self.symbol, self.order_type, self.quantity, self.direction, self.position_type)
         )
 
 
@@ -99,6 +105,8 @@ class FillEvent(Event):
     TODO: Currently does not support filling positions at
     different prices. This will be simulated by averaging
     the cost.
+
+    TODO:
     """
 
     def __init__(self, timeindex, symbol, exchange, quantity, 
@@ -136,7 +144,7 @@ class FillEvent(Event):
 
         # Calculate commission
         if commission is None:
-            self.commission = self.calculate_ib_commission()
+            self.commission = self.calculate_commission()
         else:
             self.commission = commission
 
@@ -144,22 +152,22 @@ class FillEvent(Event):
         # if
 
 
-    def calculate_ib_commission(self):
-        """
-        Calculates the fees of trading based on an Interactive
-        Brokers fee structure for API, in USD.
-
-        This does not include exchange or ECN fees.
-
-        Based on "US API Directed Orders":
-        https://www.interactivebrokers.com/en/index.php?f=commission&p=stocks2
-        """
-        full_cost = 1.3
-        if self.quantity <= 500:
-            full_cost = max(1.3, 0.013 * self.quantity)
-        else: # Greater than 500
-            full_cost = max(1.3, 0.008 * self.quantity)
-        return full_cost
+    # def calculate_ib_commission(self):
+    #     """
+    #     Calculates the fees of trading based on an Interactive
+    #     Brokers fee structure for API, in USD.
+    #
+    #     This does not include exchange or ECN fees.
+    #
+    #     Based on "US API Directed Orders":
+    #     https://www.interactivebrokers.com/en/index.php?f=commission&p=stocks2
+    #     """
+    #     full_cost = 1.3
+    #     if self.quantity <= 500:
+    #         full_cost = max(1.3, 0.013 * self.quantity)
+    #     else: # Greater than 500
+    #         full_cost = max(1.3, 0.008 * self.quantity)
+    #     return full_cost
 
     def calculate_commission(self):
         """
