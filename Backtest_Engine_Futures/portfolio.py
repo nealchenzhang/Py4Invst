@@ -145,7 +145,7 @@ class Portfolio(object):
         if fill.direction == 'SELL':
             fill_dir = -1
 
-        # TODO fill_flag OPEN/CLOSE
+        # TODO fill_type OPEN/CLOSE/CLOSE_T0
 
         # Update positions list with new quantities
         self.current_positions[fill.symbol] += fill_dir*fill.quantity
@@ -186,7 +186,7 @@ class Portfolio(object):
 
     def generate_naive_order(self, signal):
         # TODO: direction = signal_type:
-        # TODO: direction:"LONG OPEN | SHORT OPEN | CLOSE TODAY | CLOSE"
+        # TODO: position_type = 'OPEN' or 'CLOSE' or 'CLOSE_T0'"
         """
         Simply files an Order object as a constant quantity
         sizing of the signal object, without risk management or

@@ -57,8 +57,8 @@ class SignalEvent(Event):
 class OrderEvent(Event):
     """
     Handles the event of sending an Order to an execution system.
-    The order contains a symbol (e.g. GOOG), a type (market or limit),
-    quantity ,direction, and position_signal.
+    The order contains a symbol (e.g. 'rb1801'), a type (market or limit),
+    quantity ,direction, and position_type.
     """
 
     def __init__(self, symbol, order_type, quantity, direction, position_type):
@@ -66,7 +66,7 @@ class OrderEvent(Event):
         Initialises the order type, setting whether it is
         a Market order ('MKT') or Limit order ('LMT'), has
         a quantity (integral), its direction ('LONG' or
-        'SHORT'), and its position_signal ('')
+        'SHORT'), and its position_type ('OPEN', 'CLOSE', or 'CLOSE_T0')
 
             TODO: Must handle error checking here to obtain
             rational orders (i.e. no negative quantities etc).
@@ -106,7 +106,8 @@ class FillEvent(Event):
     different prices. This will be simulated by averaging
     the cost.
 
-    TODO:
+    TODO: Transaction cost, fees or slippage 
+    LONG_margin and SHORT_margin
     """
 
     def __init__(self, timeindex, symbol, exchange, quantity, 
