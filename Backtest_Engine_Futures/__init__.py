@@ -24,7 +24,6 @@ Backtest_Engine_Futures includes:
     event module -- Market Event / Signal Event / Order Event / Fill Event
     execution module -- SimulatedExecutionHandler
     performance module -- Performance calculation TODO: import Analyzer module
-                        TODO: to replace performance module
     portfolio module -- The core module of backtest
     strategy module -- strategy class
 """

@@ -66,5 +66,5 @@ class SimulatedExecutionHandler(ExecutionHandler):
             fill_event = FillEvent(datetime.datetime.utcnow(),
                                    event.symbol, 'CHINA',
                                    event.quantity, event.direction,
-                                   None)
+                                   event.position_type, None)
             self.events.put(fill_event)

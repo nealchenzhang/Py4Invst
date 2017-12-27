@@ -111,8 +111,8 @@ class FillEvent(Event):
     """
 
     def __init__(self, timeindex, symbol, exchange, quantity, 
-                 direction, fill_cost, margin=None, cash_excess=None,
-                 commission=None, risk_ratio=None):
+                 direction, position_type, fill_cost, margin_rate=None,
+                 commission=None):
         """
         Initialises the FillEvent object. Sets the symbol, exchange,
         quantity, direction, cost of fill and an optional 
@@ -127,10 +127,10 @@ class FillEvent(Event):
         symbol - The instrument which was filled.
         exchange - The exchange where the order was filled.
         quantity - The filled quantity.
-        direction - The direction of fill ('BUY' or 'SELL')
+        direction - The direction of fill ('LONG' or 'SHORT')
+        position_type - The position_type of fill ('OPEN', 'CLOSE' or 'CLOSE_T0')
         fill_cost - The holdings value in dollars.
-        margin - The holdings total portfolio margin.
-        cash_excess - The cash available to trade.
+        margin_rate - The required margin rate to fill the order.
         commission - An optional commission calculated from brokers.
         """
         self.type = 'FILL'
@@ -139,9 +139,8 @@ class FillEvent(Event):
         self.exchange = exchange
         self.quantity = quantity
         self.direction = direction
+        self.position_type = position_type
         self.fill_cost = fill_cost
-        self.margin = margin
-        self.cash_excess = cash_excess
 
         # Calculate commission
         if commission is None:
@@ -149,26 +148,11 @@ class FillEvent(Event):
         else:
             self.commission = commission
 
-        # Calculate margin
-        # if
-
-
-    # def calculate_ib_commission(self):
-    #     """
-    #     Calculates the fees of trading based on an Interactive
-    #     Brokers fee structure for API, in USD.
-    #
-    #     This does not include exchange or ECN fees.
-    #
-    #     Based on "US API Directed Orders":
-    #     https://www.interactivebrokers.com/en/index.php?f=commission&p=stocks2
-    #     """
-    #     full_cost = 1.3
-    #     if self.quantity <= 500:
-    #         full_cost = max(1.3, 0.013 * self.quantity)
-    #     else: # Greater than 500
-    #         full_cost = max(1.3, 0.008 * self.quantity)
-    #     return full_cost
+        # Fetch margin_rate
+        if margin_rate is None:
+            self.margin_rate = self.fetch_margin_rate(self.symbol)
+        else:
+            self.margin_rate = margin_rate
 
     def calculate_commission(self):
         """
@@ -181,5 +165,12 @@ class FillEvent(Event):
             full_cost = max(1.3, 0.008 * self.quantity)
         return full_cost
 
-    # def calculate_margin(self):
-    #     self.symbol
+    def fetch_margin_rate(self):
+        """
+        TODO: Establish Fundamental DataBase
+        Fetches the required margin rate for particular symbol.
+        :return:
+        """
+        symbol = self.symbol
+        margin_rate = 0.10
+        return margin_rate
