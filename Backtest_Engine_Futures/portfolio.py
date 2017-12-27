@@ -68,6 +68,8 @@ class Portfolio(object):
         d = dict((k, v) for k, v in [(s, 0.0) for s in self.symbol_list])
         d['datetime'] = self.start_date
         d['equity_T-1'] = self.initial_capital
+        d['long_quantity'] = 0
+        d['short_quantity'] = 0
         d['long_margin'] = 0.0
         d['short_margin'] = 0.0
         d['cash_excess'] = self.initial_capital
@@ -82,6 +84,8 @@ class Portfolio(object):
         """
         d = dict((k, v) for k, v in [(s, 0.0) for s in self.symbol_list])
         d['equity_T-1'] = self.initial_capital
+        d['long_quantity'] = 0
+        d['short_quantity'] = 0
         d['long_margin'] = 0.0
         d['short_margin'] = 0.0
         d['cash_excess'] = self.initial_capital
@@ -113,12 +117,14 @@ class Portfolio(object):
         # Update holdings
         # ===============
         dh = dict((k, v) for k, v in [(s, 0) for s in self.symbol_list])
-        dh['datetime'] = latest_datetime
-        dh['equity_T-1'] = self.current_holdings['equity_T-1']
-        dh['long_margin'] = self.current_holdings['long_margin']
-        dh['short_margin'] = self.current_holdings['short_margin']
-        dh['commission'] = self.current_holdings['commission']
-        dh['equity_T0'] = self.current_holdings['equity_T-1']
+        # ToDO# dh['datetime'] = latest_datetime
+        # dh['equity_T-1'] = self.current_holdings['equity_T-1']
+        # dh['long_quantity'] = self.current_holdings['long_quantity']
+        # dh['short_quantity'] = self.current_holdings['short_quantity']
+        # dh['long_margin'] = self.current_holdings['long_margin']
+        # dh['short_margin'] = self.current_holdings['short_margin']
+        # dh['commission'] = self.current_holdings['commission']
+        # dh['equity_T0'] = self.current_holdings['equity_T-1']
 
         for s in self.symbol_list:
             # Approximation to the real value
