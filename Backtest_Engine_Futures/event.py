@@ -127,7 +127,7 @@ class FillEvent(Event):
         symbol - The instrument which was filled.
         exchange - The exchange where the order was filled.
         quantity - The filled quantity.
-        direction - The direction of fill ('LONG' or 'SHORT')
+        direction - The direction of fill ('BUY' or 'SELL')
         position_type - The position_type of fill ('OPEN', 'CLOSE' or 'CLOSE_T0')
         fill_cost - The holdings value in dollars.
         margin_rate - The required margin rate to fill the order.

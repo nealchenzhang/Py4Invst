@@ -44,19 +44,43 @@ class Portfolio(object):
         self.symbol_list = self.bars.symbol_list
         self.start_date = start_date
         self.initial_capital = initial_capital
-        
+
+        self.d_pos = self.initiate_symbol_positions()            # Initialize symbol position
+
         self.all_positions = self.construct_all_positions()
-        self.current_positions = dict((k, v) for k, v in [(s, 0.0) for s in self.symbol_list])
+        self.current_positions = dict((k, v) for k, v in [(s, self.d_pos) for s in self.symbol_list])
 
         self.all_holdings = self.construct_all_holdings()
         self.current_holdings = self.construct_current_holdings()
+
+    def initiate_symbol_positions(self):
+        """
+        Symbol_positions for particular symbol,
+        including direction, quantity, position_T0,
+        position_T-1, position_avlbl, price_open,
+        price_settle, P/L, UPL, commission and margin.
+        TODO: 合约基础信息
+        """
+        d_pos = dict()
+        d_pos['direction'] = ''       # LONG | SHORT
+        d_pos['quantity'] = 0         # Number of position
+        d_pos['position_TO'] = 0      # Today OPEN
+        d_pos['position_T-1'] = 0     # Yesterday OPEN
+        d_pos['position_avlbl'] = 0   # Position available to trade
+        d_pos['price_open'] = 0.0     # Open price
+        d_pos['price_settle'] = 0.0   # Settlement price
+        d_pos['P/L'] = 0.0   # Realized P/L
+        d_pos['UPL'] = 0.0        # MTM P/L
+        d_pos['commission'] = 0.0     # Commission
+        d_pos['margin'] = 0.0         # Initial Margin TODO: will change after settlement
+        return d_pos
 
     def construct_all_positions(self):
         """
         Constructs the positions list using the start_date
         to determine when the time index will begin.
         """
-        d = dict((k, v) for k, v in [(s, 0.0) for s in self.symbol_list])
+        d = dict((k, v) for k, v in [(s, self.d_pos) for s in self.symbol_list])
         d['datetime'] = self.start_date
         return [d]
 
@@ -65,14 +89,13 @@ class Portfolio(object):
         Constructs the holdings list using the start_date
         to determine when the time index will begin.
         """
-        d = dict((k, v) for k, v in [(s, 0.0) for s in self.symbol_list])
+        d = dict((k, v) for k, v in [(s, self.d_pos) for s in self.symbol_list])
         d['datetime'] = self.start_date
-        d['equity_T-1'] = self.initial_capital
-        d['long_margin'] = 0.0
-        d['short_margin'] = 0.0
-        d['cash_excess'] = self.initial_capital
-        d['commission'] = 0.0
-        d['equity_T0'] = self.initial_capital
+        d['preBalance'] = self.initial_capital
+        d['Total_margin'] = 0.0
+        d['Fund_avail'] = self.initial_capital
+        d['Commission'] = 0.0
+        d['Balance'] = self.initial_capital
         return [d]
 
     def construct_current_holdings(self):
@@ -80,13 +103,8 @@ class Portfolio(object):
         This constructs the dictionary which will hold the instantaneous
         value of the portfolio across all symbols.
         """
-        d = dict((k, v) for k, v in [(s, 0.0) for s in self.symbol_list])
-        d['equity_T-1'] = self.initial_capital
-        d['long_margin'] = 0.0
-        d['short_margin'] = 0.0
-        d['cash_excess'] = self.initial_capital
-        d['commission'] = 0.0
-        d['equity_T0'] = self.initial_capital
+        dh_pos = self.d_pos
+        d = dict((k, v) for k, v in [(s, dh_pos) for s in self.symbol_list])
         return d
 
     def update_timeindex(self, event):
@@ -99,9 +117,12 @@ class Portfolio(object):
         """
         latest_datetime = self.bars.get_latest_bar_datetime(self.symbol_list[0])
 
+        # Symbol positions
+        d_pos = self.d_pos
+
         # Update positions
         # ================
-        dp = dict((k, v) for k, v in [(s, 0) for s in self.symbol_list])
+        dp = dict((k, v) for k, v in [(s, d_pos) for s in self.symbol_list])
         dp['datetime'] = latest_datetime
 
         for s in self.symbol_list:
@@ -112,20 +133,17 @@ class Portfolio(object):
 
         # Update holdings
         # ===============
-        dh = dict((k, v) for k, v in [(s, 0) for s in self.symbol_list])
+        dh = dict((k, v) for k, v in [(s, self.current_holdings[s]) for s in self.symbol_list])
         dh['datetime'] = latest_datetime
-        dh['equity_T-1'] = self.current_holdings['equity_T-1']
-        dh['long_margin'] = self.current_holdings['long_margin']
-        dh['short_margin'] = self.current_holdings['short_margin']
-        dh['commission'] = self.current_holdings['commission']
-        dh['equity_T0'] = self.current_holdings['equity_T-1']
 
+        # TODO: self.d_pos
         for s in self.symbol_list:
-            # Approximation to the real value
-            market_value = self.current_positions[s] * \
-                self.bars.get_latest_bar_value(s, "Close")
-            dh[s] = market_value
-            dh['equity_T0'] += market_value
+            dh['preBalance'] = 0 # TODO:self.current_holdings[s]['price_settlement']
+            # TODO: check the margin for intraday/interday trading
+            dh['Total_margin'] += self.current_holdings[s]['margin']
+            dh['Fund_avail'] += dh[s]['UPL']
+            dh['Commission'] += self.current_holdings[s]['commission']
+            dh['Balance'] = dh['Fund_avail'] + dh['Total_margin']
 
         # Append the current holdings
         self.all_holdings.append(dh)
@@ -133,27 +151,35 @@ class Portfolio(object):
     # ======================
     # FILL/POSITION HANDLING
     # ======================
-
+#########################################################################
     def update_positions_from_fill(self, fill):
         """
         Takes a Fill object and updates the position matrix to
         reflect the new position.
 
+        TODO: CLOSE VS. CLOSE_T0 position_T0 vs position_T-1
+
         Parameters:
         fill - The Fill object to update the positions with.
         """
-        # Check whether the fill is a buy or sell
-        fill_dir = 0
-        if fill.direction == 'BUY':
-            fill_dir = 1
-        if fill.direction == 'SELL':
-            fill_dir = -1
+        # Update positions list with Fill object
+        if fill.direction == 'BUY' and fill.position_type == 'OPEN':
+            self.current_holdings[fill.symbol]['direction'] = 'LONG'
+        if fill.direction == 'SELL' and fill.position_type == 'OPEN':
+            self.current_holdings[fill.symbol]['direction'] = 'SHORT'
 
-        # TODO fill_type OPEN/CLOSE/CLOSE_T0
+        if fill.position_type == 'OPEN':
+            self.current_holdings[fill.symbol]['position_T0'] += fill.quantity
+            self.current_holdings[fill.symbol]['quantity'] += fill.quantity
+            self.current_holdings[fill.symbol]['open_price'] = fill.fill_cost
+        if fill.position_type == 'CLOSE':
+            self.current_holdings[fill.symbol]['position_T0'] -= fill.quantity
+            self.current_holdings[fill.symbol]['quantity'] -= fill.quantity
+        if fill.position_type == 'CLOSE_T0':
+            self.current_holdings[fill.symbol]['position_T0'] -= fill.quantity
+            self.current_holdings[fill.symbol]['quantity'] -= fill.quantity
 
-        # Update positions list with new quantities
-        self.current_positions[fill.symbol] += fill_dir*fill.quantity
-
+    ########################################################################
     def update_holdings_from_fill(self, fill):
         """
         Takes a Fill object and updates the holdings matrix to
@@ -162,21 +188,49 @@ class Portfolio(object):
         Parameters:
         fill - The Fill object to update the holdings with.
         """
-        # Check whether the fill is a buy or sell
+        # Check whether the fill is a long or short
         fill_dir = 0
-        if fill.direction == 'BUY':
+        if fill.direction == 'LONG':
             fill_dir = 1
-        if fill.direction == 'SELL':
+        if fill.direction == 'SHORT':
             fill_dir = -1
+
+        fill_type = 0
+        if fill.position_type == 'OPEN':
+            fill_type = 1
+        if fill.position_type == 'CLOSE':
+            fill_type = -1
+        if fill.position_type == 'CLOSE_T0':
+            fill_type = -1
+
+        dir = 0
+        if self.current_holdings[s]['direction'] == 'LONG':
+            dir = 1
+        if self.current_holdings[s]['direction'] == 'SHORT':
+            dir = -1
+
+        # ToDO: Multiplier
+        multiplier = 10
+
+        # Calculate UPL based on open_price
+        dh[s]['UPL'] = (self.bars.get_latest_bar_value(s, "Close") -
+                        self.current_positions[s]['price_open']) * \
+                       dir * multiplier * self.current_positions[s]['quantity']
 
         # Update holdings list with new quantities
         fill_cost = self.bars.get_latest_bar_value(
             fill.symbol, "Close"
         )
-        cost = fill_dir * fill_cost * fill.quantity
-        self.current_holdings[fill.symbol] += cost
+        self.current_holdings[fill.symbol]['price_open']
+        # TODO: 合约基本信息
+        multiplier = 10
+        equity = fill_cost * fill.quantity * multiplier
+        long_margin = equity * fill.margin_rate
+        short_margin = equity * fill.margin_rate
+
+        self.current_holdings[fill.symbol]['margin'] += np.max(long_margin, short_margin)
         self.current_holdings['commission'] += fill.commission
-        self.current_holdings['cash'] -= (cost + fill.commission)
+        self.current_holdings['cash'] -= np.max(long_margin, short_margin)
         self.current_holdings['total'] -= (cost + fill.commission)
 
     def update_fill(self, event):
