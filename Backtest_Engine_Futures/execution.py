@@ -34,6 +34,7 @@ class ExecutionHandler(object):
         """
         raise NotImplementedError("Should implement execute_order()")
 
+
 class SimulatedExecutionHandler(ExecutionHandler):
     """
     The simulated execution handler simply converts all order
