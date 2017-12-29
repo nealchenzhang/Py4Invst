@@ -91,13 +91,11 @@ class Portfolio(object):
         """
         d = dict((k, v) for k, v in [(s, self.d_pos) for s in self.symbol_list])
         d['datetime'] = self.start_date
-<<<<<<< HEAD
         d['preBalance'] = self.initial_capital
         d['Total_margin'] = 0.0
         d['Fund_avail'] = self.initial_capital
         d['Commission'] = 0.0
         d['Balance'] = self.initial_capital
-=======
         d['equity_T-1'] = self.initial_capital
         d['long_quantity'] = 0
         d['short_quantity'] = 0
@@ -106,7 +104,6 @@ class Portfolio(object):
         d['cash_excess'] = self.initial_capital
         d['commission'] = 0.0
         d['equity_T0'] = self.initial_capital
->>>>>>> origin/master
         return [d]
 
     def construct_current_holdings(self):
@@ -114,10 +111,8 @@ class Portfolio(object):
         This constructs the dictionary which will hold the instantaneous
         value of the portfolio across all symbols.
         """
-<<<<<<< HEAD
         dh_pos = self.d_pos
         d = dict((k, v) for k, v in [(s, dh_pos) for s in self.symbol_list])
-=======
         d = dict((k, v) for k, v in [(s, 0.0) for s in self.symbol_list])
         d['equity_T-1'] = self.initial_capital
         d['long_quantity'] = 0
@@ -127,7 +122,6 @@ class Portfolio(object):
         d['cash_excess'] = self.initial_capital
         d['commission'] = 0.0
         d['equity_T0'] = self.initial_capital
->>>>>>> origin/master
         return d
 
     def update_timeindex(self, event):
@@ -156,10 +150,8 @@ class Portfolio(object):
 
         # Update holdings
         # ===============
-<<<<<<< HEAD
         dh = dict((k, v) for k, v in [(s, self.current_holdings[s]) for s in self.symbol_list])
         dh['datetime'] = latest_datetime
-=======
         dh = dict((k, v) for k, v in [(s, 0) for s in self.symbol_list])
         # ToDO# dh['datetime'] = latest_datetime
         # dh['equity_T-1'] = self.current_holdings['equity_T-1']
@@ -169,7 +161,6 @@ class Portfolio(object):
         # dh['short_margin'] = self.current_holdings['short_margin']
         # dh['commission'] = self.current_holdings['commission']
         # dh['equity_T0'] = self.current_holdings['equity_T-1']
->>>>>>> origin/master
 
         # TODO: self.d_pos
         for s in self.symbol_list:
