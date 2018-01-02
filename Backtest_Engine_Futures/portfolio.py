@@ -257,7 +257,7 @@ class Portfolio(object):
         fill_price = self.bars.get_latest_bar_value(
             fill.symbol, "Close"
         )
-        self.current_holdings[fill.symbol]['price_open']
+        # self.current_holdings[fill.symbol]['price_open']
         # TODO: 合约基本信息
         multiplier = 10
         equity = fill_price * fill.quantity * multiplier

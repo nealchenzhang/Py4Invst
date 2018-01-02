@@ -73,16 +73,15 @@ class OrderEvent(Event):
         direction - 'BUY' or 'SELL'.
         position_type - 'OPEN', 'CLOSE' or 'CLOSE_T0'
         """
-        self.type = 'ORDER'
-        self.symbol = symbol
-        self.order_type = order_type
+        self.type = 'ORDER'                             # Order event
+        self.symbol = symbol                            # Symbol
+        self.order_type = order_type                    # LMT or MKT
         if quantity >= 0 & int(quantity) == quantity:
-            self.quantity = quantity
+            self.quantity = quantity                    # Quantity
         else:
             print('Please enter the right quantity')
-        self.quantity = quantity
-        self.direction = direction
-        self.position_type = position_type
+        self.direction = direction                      # BUY or SELL
+        self.position_type = position_type              # OPEN, CLOSE, or CLOSE_T0
 
     def print_order(self):
         """
