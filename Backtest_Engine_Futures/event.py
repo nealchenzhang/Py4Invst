@@ -40,9 +40,8 @@ class SignalEvent(Event):
         strategy_id - The unique ID of the strategy sending the signal.
         symbol - The ticker symbol, e.g. 'rb1801'.
         datetime - The timestamp at which the signal was generated.
-        signal_type - 'LONG' or 'SHORT'
-        position_type - 'OPEN' or 'CLOSE' or 'CLOSE_T0'
-        strength - An adjustment factor "suggestion" used to scale 
+        signal_type - 'BUY' or 'SELL' or 'EXIT'
+        strength - An adjustment factor "suggestion" used to scale
             quantity at the portfolio level. Useful for pairs strategies.
         """
         self.strategy_id = strategy_id
@@ -50,7 +49,6 @@ class SignalEvent(Event):
         self.symbol = symbol
         self.datetime = datetime
         self.signal_type = signal_type
-        self.position_type = position_type
         self.strength = strength
 
 
@@ -65,22 +63,23 @@ class OrderEvent(Event):
         """
         Initialises the order type, setting whether it is
         a Market order ('MKT') or Limit order ('LMT'), has
-        a quantity (integral), its direction ('LONG' or
-        'SHORT'), and its position_type ('OPEN', 'CLOSE', or 'CLOSE_T0')
-
-            TODO: Must handle error checking here to obtain
-            rational orders (i.e. no negative quantities etc).
+        a quantity (integral), its direction ('BUY' or
+        'SELL'), and its position_type ('OPEN', 'CLOSE', or 'CLOSE_T0')
 
         Parameters:
         symbol - The instrument to trade.
         order_type - 'MKT' or 'LMT' for Market or Limit.
         quantity - Non-negative integer for quantity.
-        direction - 'LONG' or 'SHORT'.
+        direction - 'BUY' or 'SELL'.
         position_type - 'OPEN', 'CLOSE' or 'CLOSE_T0'
         """
         self.type = 'ORDER'
         self.symbol = symbol
         self.order_type = order_type
+        if quantity >= 0 & int(quantity) == quantity:
+            self.quantity = quantity
+        else:
+            print('Please enter the right quantity')
         self.quantity = quantity
         self.direction = direction
         self.position_type = position_type
@@ -106,21 +105,17 @@ class FillEvent(Event):
     different prices. This will be simulated by averaging
     the cost.
 
-    TODO: Transaction cost, fees or slippage 
-    LONG_margin and SHORT_margin
     """
 
     def __init__(self, timeindex, symbol, exchange, quantity, 
-                 direction, position_type, fill_cost, margin_rate=None,
-                 commission=None):
+                 direction, position_type, fill_price, commission=None):
         """
         Initialises the FillEvent object. Sets the symbol, exchange,
-        quantity, direction, cost of fill and an optional 
+        quantity, direction, price of fill and an optional
         commission.
 
         If commission is not provided, the Fill object will
-        calculate it based on the trade size and Interactive
-        Brokers fees.
+        calculate it based on the trade size.
 
         Parameters:
         timeindex - The bar-resolution when the order was filled.
@@ -129,8 +124,7 @@ class FillEvent(Event):
         quantity - The filled quantity.
         direction - The direction of fill ('BUY' or 'SELL')
         position_type - The position_type of fill ('OPEN', 'CLOSE' or 'CLOSE_T0')
-        fill_cost - The holdings value in dollars.
-        margin_rate - The required margin rate to fill the order.
+        fill_price - The fill price in dollars.
         commission - An optional commission calculated from brokers.
         """
         self.type = 'FILL'
@@ -140,19 +134,13 @@ class FillEvent(Event):
         self.quantity = quantity
         self.direction = direction
         self.position_type = position_type
-        self.fill_cost = fill_cost
+        self.fill_price = fill_price
 
         # Calculate commission
         if commission is None:
             self.commission = self.calculate_commission()
         else:
             self.commission = commission
-
-        # Fetch margin_rate
-        if margin_rate is None:
-            self.margin_rate = self.fetch_margin_rate(self.symbol)
-        else:
-            self.margin_rate = margin_rate
 
     def calculate_commission(self):
         """
@@ -164,13 +152,3 @@ class FillEvent(Event):
         else: # Greater than 500
             full_cost = max(1.3, 0.008 * self.quantity)
         return full_cost
-
-    def fetch_margin_rate(self):
-        """
-        TODO: Establish Fundamental DataBase
-        Fetches the required margin rate for particular symbol.
-        :return:
-        """
-        symbol = self.symbol
-        margin_rate = 0.10
-        return margin_rate
