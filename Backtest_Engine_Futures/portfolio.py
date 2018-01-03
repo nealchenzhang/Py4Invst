@@ -45,81 +45,132 @@ class Portfolio(object):
         self.start_date = start_date
         self.initial_capital = initial_capital
 
-        self.d_pos_0 = self.initial_symbol_position()
+        self.columns_pos_details = [
+            'open_time', 'symbol', 'exchange', 'quantity', 'direction',
+            'position_type', 'open_price', 'UPL', 'holdingPnL'
+        ]
+        self.dict_columns_pos_details = {
+            'open_time': pd.datetime
+        }
+        self.columns_positions = [
+            'datetime', 'symbol', 'direction', 'total_quantity', 'YstPosition',
+            'T0Position', 'Position_avlbl', 'Open_price_avg', 'UPL',
+            'Holding_price_avg', 'holdingPnl', 'margin_Occupied'
+        ]
+        self.columns_holdings = [
+            'preBalance', 'Realized_Pnl', 'MTM_Pnl', 'Holding_Pnl', 'Margin',
+            'Commission', 'Fund_avlbl', 'Frozen_fund', 'Risk Degree', 'Balance'
+        ]
 
-        self.all_positions = self.construct_all_positions()
-        self.current_positions = dict((k, v) for k, v in [(s, self.d_pos_0) for s in self.symbol_list])
+        self.df_all_positions = self.construct_all_positions()
+        self.df_current_positions = self.construct_current_positions()
 
-        self.all_holdings = self.construct_all_holdings()
-        self.current_holdings = self.construct_current_holdings()
+        self.df_all_holdings = self.construct_all_holdings()
+        self.df_current_holdings = self.construct_current_holdings()
 
-    def initial_symbol_position(self):
+    def construct_current_positions(self):
         """
-        d_pos: positions for particular direction
-                Symbol_positions for particular symbol,
-                including quantity, position_T0,
-                position_T-1, position_avlbl, price_open,
-                price_settle, P/L, UPL, and margin.
-        d_p:  'LONG' or 'SHORT' positions details, and margin details.
+        Constructs the current position DataFrame which holds current
+        positions
+
+            open_time:       The fill_time for this position
+            symbol:          The symbol contract
+            exchange:        The exchange where the symbol trades
+            quantity:        The position quantity
+            direction:       "BUY", or "SELL"
+            position_type:   "Yst_Pos" or "T0_Pos"
+            open_price:      The filled price
+            UPL:             The unrealized P/L based on open_price
+            holdingPnl:      The unrealized P/L based on Ystday settlement price
 
         """
-        d_pos = dict()
-        d_pos['quantity'] = 0         # Number of position
-        d_pos['position_TO'] = 0      # Today OPEN
-        d_pos['position_T-1'] = 0     # Yesterday OPEN
-        d_pos['position_avlbl'] = 0   # Position available to trade
-        d_pos['price_open'] = 0.0     # Open price
-        d_pos['price_pos'] = 0.0      # Avg. position price held
-        d_pos['P/L'] = 0.0            # Realized P/L
-        d_pos['UPL'] = 0.0            # MTM P/L
-        d_pos['margin'] = 0.0         # Initial Margin TODO: will change after settlement
-        d_p = dict()
-        d_p['LONG'] = [d_pos]         # LONG
-        d_p['SHORT'] = [d_pos]        # SHORT
-        d_p['Margin'] = 0.0           # Total margin for this symbol
-        return d_p
+        columns = self.columns_pos_details
+        df_current_positions = pd.DataFrame(columns=columns)
+        return df_current_positions
 
     def construct_all_positions(self):
         """
-        Constructs the positions list using the start_date
+        Constructs the positions DataFrame using the start_date
         to determine when the time index will begin.
+
+            datetime:            The positions time
+            symbol:              The symbol contract
+            direction:           "BUY" or "SELL"
+            total_quantity:      Total quantity for symbol
+            YstPosition:         Yesterday quantity
+            T0Position:          Today quantity
+            Position_avlbl:      Quantity available to trade
+            Open_price_avg:      Average open price
+            UPL:                 Unrealized profit and loss based on avg.
+                                 open price
+            Holding_price_avg:   Average holding price
+            holdingPnl:          Unrealized profit and loss based on avg.
+                                 holding price
+            margin_Occupied:     Margin occupied
+
         """
-        d = dict((k, v) for k, v in [(s, self.d_pos_0) for s in self.symbol_list])
-        d['datetime'] = self.start_date
-        return [d]
+        columns = self.columns_positions
+        df_all_positions = pd.DataFrame(columns=columns)
+        return df_all_positions
 
     def construct_all_holdings(self):
         """
         Constructs the holdings list using the start_date
         to determine when the time index will begin.
+
+            preBalance:          The previous Balance
+            Realized_Pnl:        The realized profit and loss
+            MTM_Pnl:             The mark to market profit and loss
+                                 calculated based on previous settlement
+                                 price
+            Holding_Pnl:         The holding positions profit and loss
+                                 calculated based on current price and
+                                 Holding_price_avg
+            Margin:              The total margin of the portfolio
+            Commission:          The commission paid for this trading day
+            Fund_avlbl:          Total balance except margin occupied and
+                                 frozen fund.
+            Frozen_fund:         Fund frozen for order, including commission
+                                 and margin required.
+            Risk Degree:         Calculated by Margin / Balance
+            Balance:             The Balance or equity for now, after
+                                 M2M settlement, this will be next trading day
+                                 preBalance
+            datetime:            The holdings for particular datetime
+
         """
-        d = dict((k, v) for k, v in [(s, self.d_pos_0) for s in self.symbol_list])
-        d['datetime'] = self.start_date
-        d['preBalance'] = self.initial_capital
-        d['Total_margin'] = 0.0
-        d['Fund_occpd'] = 0.0
-        d['Fund_avail'] = self.initial_capital
-        d['Commission'] = 0.0
-        d['Risk_degree'] = 0.0
-        d['Balance'] = self.initial_capital
-        return [d]
+        columns = self.columns_holdings.append('datetime')
+        df_all_holdings = pd.DataFrame(columns=columns)
+        return df_all_holdings
 
     def construct_current_holdings(self):
         """
         This constructs the dictionary which will hold the instantaneous
         value of the portfolio across all symbols.
+
+            preBalance:          The previous Balance
+            Realized_Pnl:        The realized profit and loss
+            MTM_Pnl:             The mark to market profit and loss
+                                 calculated based on previous settlement
+                                 price
+            Holding_Pnl:         The holding positions profit and loss
+                                 calculated based on current price and
+                                 Holding_price_avg
+            Margin:              The total margin of the portfolio
+            Commission:          The commission paid for this trading day
+            Fund_avlbl:          Total balance except margin occupied and
+                                 frozen fund.
+            Frozen_fund:         Fund frozen for order, including commission
+                                 and margin required.
+            Risk Degree:         Calculated by Margin / Balance
+            Balance:             The Balance or equity for now, after
+                                 M2M settlement, this will be next trading day
+                                 preBalance
+
         """
-        dh_pos = self.d_pos_0
-        d = dict((k, v) for k, v in [(s, dh_pos) for s in self.symbol_list])
-        d['datetime'] = self.start_date
-        d['preBalance'] = self.initial_capital
-        d['Total_margin'] = 0.0
-        d['Fund_occpd'] = 0.0
-        d['Fund_avail'] = self.initial_capital
-        d['Commission'] = 0.0
-        d['Risk_degree'] = 0.0
-        d['Balance'] = self.initial_capital
-        return d
+        columns = self.columns_holdings
+        df_current_holdings = pd.DataFrame(columns=columns)
+        return df_current_holdings
 
     def update_timeindex(self, event):
         """
@@ -131,45 +182,43 @@ class Portfolio(object):
         """
         latest_datetime = self.bars.get_latest_bar_datetime(self.symbol_list[0])
 
-        # Symbol positions
-        d_pos = self.d_pos_0
-
-        # Update positions
-        # ================
-        dp = dict((k, v) for k, v in [(s, d_pos) for s in self.symbol_list])
-        dp['datetime'] = latest_datetime
-
-        for s in self.symbol_list:
-            dp[s] = self.current_positions[s]
-
-        # Append the current positions
-        self.all_positions.append(dp)
-
-        # Update holdings
-        # ===============
-        dh = dict((k, v) for k, v in [(s, self.current_holdings[s]) for s in self.symbol_list])
-        dh['datetime'] = latest_datetime
-        dh = dict((k, v) for k, v in [(s, 0) for s in self.symbol_list])
-        # ToDO# dh['datetime'] = latest_datetime
-        # dh['equity_T-1'] = self.current_holdings['equity_T-1']
-        # dh['long_quantity'] = self.current_holdings['long_quantity']
-        # dh['short_quantity'] = self.current_holdings['short_quantity']
-        # dh['long_margin'] = self.current_holdings['long_margin']
-        # dh['short_margin'] = self.current_holdings['short_margin']
-        # dh['commission'] = self.current_holdings['commission']
-        # dh['equity_T0'] = self.current_holdings['equity_T-1']
-
-        # TODO: self.d_pos
-        for s in self.symbol_list:
-            dh['preBalance'] = 0 # TODO:self.current_holdings[s]['price_settlement']
-            # TODO: check the margin for intraday/interday trading
-            dh['Total_margin'] += self.current_holdings[s]['margin']
-            dh['Fund_avail'] += dh[s]['UPL']
-            dh['Commission'] += self.current_holdings[s]['commission']
-            dh['Balance'] = dh['Fund_avail'] + dh['Total_margin']
-
-        # Append the current holdings
-        self.all_holdings.append(dh)
+        # # Update positions
+        # # ================
+        # TODO: 持仓类型要随着时间进行调整
+        # dp = dict((k, v) for k, v in [(s, d_pos) for s in self.symbol_list])
+        # dp['datetime'] = latest_datetime
+        #
+        # for s in self.symbol_list:
+        #     dp[s] = self.current_positions[s]
+        #
+        # # Append the current positions
+        # self.all_positions.append(dp)
+        #
+        # # Update holdings
+        # # ===============
+        # dh = dict((k, v) for k, v in [(s, self.current_holdings[s]) for s in self.symbol_list])
+        # dh['datetime'] = latest_datetime
+        # dh = dict((k, v) for k, v in [(s, 0) for s in self.symbol_list])
+        # # ToDO# dh['datetime'] = latest_datetime
+        # # dh['equity_T-1'] = self.current_holdings['equity_T-1']
+        # # dh['long_quantity'] = self.current_holdings['long_quantity']
+        # # dh['short_quantity'] = self.current_holdings['short_quantity']
+        # # dh['long_margin'] = self.current_holdings['long_margin']
+        # # dh['short_margin'] = self.current_holdings['short_margin']
+        # # dh['commission'] = self.current_holdings['commission']
+        # # dh['equity_T0'] = self.current_holdings['equity_T-1']
+        #
+        # # TODO: self.d_pos
+        # for s in self.symbol_list:
+        #     dh['preBalance'] = 0 # TODO:self.current_holdings[s]['price_settlement']
+        #     # TODO: check the margin for intraday/interday trading
+        #     dh['Total_margin'] += self.current_holdings[s]['margin']
+        #     dh['Fund_avail'] += dh[s]['UPL']
+        #     dh['Commission'] += self.current_holdings[s]['commission']
+        #     dh['Balance'] = dh['Fund_avail'] + dh['Total_margin']
+        #
+        # # Append the current holdings
+        # self.all_holdings.append(dh)
 
     # ======================
     # FILL/POSITION HANDLING
@@ -177,43 +226,133 @@ class Portfolio(object):
 #########################################################################
     def update_positions_from_fill(self, fill):
         """
-        Takes a Fill object and updates the position matrix to
+        Takes a Fill object and updates the position dataframe to
         reflect the new position.
 
         Parameters:
         fill - The Fill object to update the positions with.
         """
-        # Update positions list with Fill object
+        # Todo: fundamental information contract size and etc.
         multiplier = 10
-        fill_pos = ''
-        if fill.direction == 'BUY' & fill.position_type == 'OPEN':
-            fill_pos = 'LONG'
-        if fill.direction == 'SELL'& fill.position_type == 'OPEN':
-            fill_pos = 'SHORT'
+        latest_close_price = self.bars.get_latest_bar_value(fill.symbol, "Close")
+        # TODO: last settlement price
+        last_settlement_price = self.bars.get_latest_bar_value(fill.symbol, "lastSettlement")
 
-        if fill.direction == 'BUY' & fill.position_type == 'CLOSE':
-            fill_pos = 'SHORT'
-        if fill.direction == 'SELL'& fill.position_type == 'CLOSE':
-            fill_pos = 'LONG'
+        direction = 0
+        if fill.direction == 'BUY':
+            direction = 1
+        if fill.direction == 'SELL':
+            direction = -1
 
         if fill.position_type == 'OPEN':
-            self.current_holdings[fill.symbol][fill_pos]['quantity'] += fill.quantity
-            self.current_holdings[fill.symbol][fill_pos]['position_T0'] += fill.quantity
-            self.current_holdings[fill.symbol][fill_pos]['open_price'] = np.average(
-                [
-                    self.current_holdings[fill.symbol][fill_pos]['open_price'], fill.fill_price],
-                weights=[
-                    self.current_holdings[fill.symbol][fill_pos]['quantity'], fill.quantity
-                ]
-            )
-        # TODO: track every fill and calculate different position price and close pnl
+            fill_array = np.array(
+                [fill.timeindex.strftime('%Y%m%d'), fill.symbol, fill.exchange,
+                 fill.quantity, fill.direction, 'T0_Pos', fill.fill_price,
+                 direction * (latest_close_price - fill.fill_price) * multiplier,
+                 direction * (latest_close_price - fill.fill_price) * multiplier
+                 ]
+            ).reshape(1, len(self.columns_pos_details))
+            df = pd.DataFrame(fill_array, columns=self.columns_pos_details)
+            df = df.astype({''})
+            self.df_current_positions = self.df_current_positions.append(df, ignore_index=True)
+            self.df_current_positions.reset_index(drop=True, inplace=True)
+
+        # BUG: Change dtype to float or int
+        # solution: dt = np.dtype(
+
+        if fill.position_type == 'CLOSE_T0':
+            quantity_to_fill = fill.quantity
+            if fill.direction == 'BUY':
+                df = self.df_current_positions.where(
+                    self.df_current_positions['position_type'] == 'T0_Pos' &
+                    self.df_current_positions['symbol'] == fill.symbol &
+                    self.df_current_positions['direction'] == 'SELL'
+                ).dropna()
+            if fill.direction == 'SELL':
+                df = self.df_current_positions.where(
+                    self.df_current_positions['position_type'] == 'T0_Pos' &
+                    self.df_current_positions['symbol'] == fill.symbol &
+                    self.df_current_positions['direction'] == 'BUY'
+                ).dropna()
+            df_index = df.index.tolist()
+
+            if len(df_index) == 0:
+                print("No available T0 position to close. Try Close.")
+
+            for ix in df_index:
+                if self.df_current_positions.loc[df_index[ix], 'quantity'] >= quantity_to_fill:
+                    self.df_current_positions.loc[df_index[ix], 'quantity'] -= quantity_to_fill
+                    # ToDO: 平仓盈亏计入方法确定 待思考
+                    self.df_current_holdings['Realized_Pnl'] += \
+                        direction * (latest_close_price - fill.fill_price) * multiplier
+                    quantity_to_fill -= self.df_current_positions.loc[df_index[ix], 'quantity']
+                else:
+                    quantity_to_fill -= self.df_current_positions.loc[df_index[ix], 'quantity']
+                    # ToDO: 平仓盈亏计入方法确定 待思考
+                    self.df_current_holdings['Realized_Pnl'] += \
+                        direction * (latest_close_price - fill.fill_price) * multiplier
+
+                if quantity_to_fill <= 0:
+                    break
+
+            for ix in df_index:
+                if self.df_current_positions.loc[df_index[ix], 'quantity'] == 0:
+                    self.df_current_positions.drop(df_index[ix], inplace=True)
+
+            self.df_current_positions.reset_index(drop=True, inplace=True)
 
         if fill.position_type == 'CLOSE':
-            # self.current_holdings[fill.symbol]['position_T0'] -= fill.quantity
-            self.current_holdings[fill.symbol][fill_pos]['quantity'] -= fill.quantity
-            self.current_holdings[fill.symbol][fill_pos]['P/L'] += (
-                    self.bars.get_latest_bar_value(fill.symbol, "Close") -
-                    fill.fill_price) * fill.quantity * multiplier
+            quantity_to_fill = fill.quantity
+            if fill.direction == 'BUY':
+                df = self.df_current_positions.where(
+                    self.df_current_positions['symbol'] == fill.symbol &
+                    self.df_current_positions['direction'] == 'SELL'
+                ).dropna()
+            if fill.direction == 'SELL':
+                df = self.df_current_positions.where(
+                    self.df_current_positions['symbol'] == fill.symbol &
+                    self.df_current_positions['direction'] == 'BUY'
+                ).dropna()
+            df_index = df.index.tolist()
+
+            if len(df_index) == 0:
+                print("No available position to close.")
+
+            for ix in df_index:
+                if self.df_current_positions.loc[df_index[ix], 'quantity'] >= quantity_to_fill:
+                    self.df_current_positions.loc[df_index[ix], 'quantity'] -= quantity_to_fill
+                    # ToDO: 平仓盈亏计入方法确定 待思考
+                    if self.df_current_positions.loc[df_index[ix], 'position_type'] == 'T0_Pos':
+                        self.df_current_holdings['Realized_Pnl'] += \
+                            direction * (
+                                    self.df_current_positions.loc[df_index[ix], 'open_price']
+                                    - fill.fill_price
+                            ) * multiplier
+                    else:
+                        self.df_current_holdings['Realized_Pnl'] += \
+                            direction * (last_settlement_price - fill.fill_price) * multiplier
+                    quantity_to_fill -= self.df_current_positions.loc[df_index[ix], 'quantity']
+                else:
+                    quantity_to_fill -= self.df_current_positions.loc[df_index[ix], 'quantity']
+                    # ToDO: 平仓盈亏计入方法确定 待思考
+                    if self.df_current_positions.loc[df_index[ix], 'position_type'] == 'T0_Pos':
+                        self.df_current_holdings['Realized_Pnl'] += \
+                            direction * (
+                                    self.df_current_positions.loc[df_index[ix], 'open_price']
+                                    - fill.fill_price
+                            ) * multiplier
+                    else:
+                        self.df_current_holdings['Realized_Pnl'] += \
+                            direction * (last_settlement_price - fill.fill_price) * multiplier
+
+                if quantity_to_fill <= 0:
+                    break
+
+            for ix in df_index:
+                if self.df_current_positions.loc[df_index[ix], 'quantity'] == 0:
+                    self.df_current_positions.drop(df_index[ix], inplace=True)
+
+            self.df_current_positions.reset_index(drop=True, inplace=True)
 
     ########################################################################
     def update_holdings_from_fill(self, fill):
@@ -224,6 +363,8 @@ class Portfolio(object):
         Parameters:
         fill - The Fill object to update the holdings with.
         """
+
+        latest_datetime = self.bars.get_latest_bar_datetime(self.symbol_list[0])
         # Check whether the fill is a long or short
         fill_dir = 0
         if fill.direction == 'LONG':
@@ -269,6 +410,9 @@ class Portfolio(object):
         self.current_holdings['cash'] -= np.max(long_margin, short_margin)
         self.current_holdings['total'] -= (cost + fill.commission)
 
+        # df_current_holdings = pd.DataFrame(np.array(['MA805', 'BUY', 1, 1, 0, 1, 2825, 850, 3773, 70]).reshape(1, 10),
+                                           # columns=columns_holdings)
+
     def update_fill(self, event):
         """
         Updates the portfolio current positions and holdings 
@@ -294,7 +438,9 @@ class Portfolio(object):
         strength = signal.strength
 
         mkt_quantity = 1
-        cur_quantity = self.current_positions[symbol]['quantity']
+        # TODO: cur_quantity = self.current_positions[symbol]['quantity']
+        # df = self.df_current_positions.set_index(['symbol','position_type'])
+        # df.loc[symbol]
         order_type = 'MKT'
 
         if direction == 'BUY' and cur_quantity == 0:
@@ -326,9 +472,9 @@ class Portfolio(object):
         Creates a pandas DataFrame from the all_holdings
         list of dictionaries.
         """
-        curve = pd.DataFrame(self.all_holdings)
+        curve = self.all_holdings
         curve.set_index('datetime', inplace=True)
-        curve['returns'] = curve['total'].pct_change()
+        curve['returns'] = curve['Balance'].pct_change()
         curve['equity_curve'] = (1.0+curve['returns']).cumprod()
         self.equity_curve = curve
 

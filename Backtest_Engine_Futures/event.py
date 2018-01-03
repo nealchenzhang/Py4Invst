@@ -40,7 +40,7 @@ class SignalEvent(Event):
         strategy_id - The unique ID of the strategy sending the signal.
         symbol - The ticker symbol, e.g. 'rb1801'.
         datetime - The timestamp at which the signal was generated.
-        signal_type - 'BUY' or 'SELL' or 'EXIT'
+        TODO: signal_type - 'BUY' or 'SELL' or 'EXIT' Optimized this process
         strength - An adjustment factor "suggestion" used to scale
             quantity at the portfolio level. Useful for pairs strategies.
         """
