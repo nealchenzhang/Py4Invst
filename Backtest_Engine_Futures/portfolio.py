@@ -50,17 +50,33 @@ class Portfolio(object):
             'position_type', 'open_price', 'UPL', 'holdingPnL'
         ]
         self.dict_columns_pos_details = {
-            'open_time': pd.datetime
+            'open_time': np.str, 'symbol': np.str, 'exchange': np.str,
+            'quantity': np.int64, 'direction': np.str, 'position_type': np.str,
+            'open_price': np.float64, 'UPL': np.float64, 'holdingPnL': np.float64
         }
         self.columns_positions = [
             'datetime', 'symbol', 'direction', 'total_quantity', 'YstPosition',
             'T0Position', 'Position_avlbl', 'Open_price_avg', 'UPL',
-            'Holding_price_avg', 'holdingPnl', 'margin_Occupied'
+            'Holding_price_avg', 'holdingPnL', 'margin_Occupied'
         ]
+        self.dict_columns_positions = {
+            'datetime': np.datetime64, 'symbol': np.str, 'direction': np.str,
+            'total_quantity': np.int64, 'YstPosition': np.int64,
+            'T0Position': np.int64, 'Position_avlbl': np.int64,
+            'Open_price_avg': np.float64, 'UPL': np.float64,
+            'Holding_price_avg': np.float64, 'holdingPnL': np.float64,
+            'margin_Occupied': np.float64
+        }
         self.columns_holdings = [
-            'preBalance', 'Realized_Pnl', 'MTM_Pnl', 'Holding_Pnl', 'Margin',
+            'preBalance', 'Realized_PnL', 'MTM_PnL', 'Holding_PnL', 'Margin',
             'Commission', 'Fund_avlbl', 'Frozen_fund', 'Risk Degree', 'Balance'
         ]
+        self.dict_columns_holdings = {
+            'preBalance': np.float64, 'Realized_PnL': np.float64, 'MTM_PnL': np.float64,
+            'Holding_PnL': np.float64, 'Margin': np.float64, 'Commission': np.float64,
+            'Fund_avlbl': np.float64, 'Frozen_Fund': np.float64, 'Risk Degree': np.float64,
+            'Balance': np.float64
+        }
 
         self.df_all_positions = self.construct_all_positions()
         self.df_current_positions = self.construct_current_positions()
@@ -81,7 +97,7 @@ class Portfolio(object):
             position_type:   "Yst_Pos" or "T0_Pos"
             open_price:      The filled price
             UPL:             The unrealized P/L based on open_price
-            holdingPnl:      The unrealized P/L based on Ystday settlement price
+            holdingPnL:      The unrealized P/L based on Ystday settlement price
 
         """
         columns = self.columns_pos_details
@@ -104,7 +120,7 @@ class Portfolio(object):
             UPL:                 Unrealized profit and loss based on avg.
                                  open price
             Holding_price_avg:   Average holding price
-            holdingPnl:          Unrealized profit and loss based on avg.
+            holdingPnL:          Unrealized profit and loss based on avg.
                                  holding price
             margin_Occupied:     Margin occupied
 
@@ -119,11 +135,11 @@ class Portfolio(object):
         to determine when the time index will begin.
 
             preBalance:          The previous Balance
-            Realized_Pnl:        The realized profit and loss
-            MTM_Pnl:             The mark to market profit and loss
+            Realized_PnL:        The realized profit and loss
+            MTM_PnL:             The mark to market profit and loss
                                  calculated based on previous settlement
                                  price
-            Holding_Pnl:         The holding positions profit and loss
+            Holding_PnL:         The holding positions profit and loss
                                  calculated based on current price and
                                  Holding_price_avg
             Margin:              The total margin of the portfolio
@@ -149,11 +165,11 @@ class Portfolio(object):
         value of the portfolio across all symbols.
 
             preBalance:          The previous Balance
-            Realized_Pnl:        The realized profit and loss
-            MTM_Pnl:             The mark to market profit and loss
+            Realized_PnL:        The realized profit and loss
+            MTM_PnL:             The mark to market profit and loss
                                  calculated based on previous settlement
                                  price
-            Holding_Pnl:         The holding positions profit and loss
+            Holding_PnL:         The holding positions profit and loss
                                  calculated based on current price and
                                  Holding_price_avg
             Margin:              The total margin of the portfolio
@@ -253,12 +269,9 @@ class Portfolio(object):
                  ]
             ).reshape(1, len(self.columns_pos_details))
             df = pd.DataFrame(fill_array, columns=self.columns_pos_details)
-            df = df.astype({''})
+            df = df.astype(self.dict_columns_pos_details)
             self.df_current_positions = self.df_current_positions.append(df, ignore_index=True)
             self.df_current_positions.reset_index(drop=True, inplace=True)
-
-        # BUG: Change dtype to float or int
-        # solution: dt = np.dtype(
 
         if fill.position_type == 'CLOSE_T0':
             quantity_to_fill = fill.quantity
@@ -283,13 +296,13 @@ class Portfolio(object):
                 if self.df_current_positions.loc[df_index[ix], 'quantity'] >= quantity_to_fill:
                     self.df_current_positions.loc[df_index[ix], 'quantity'] -= quantity_to_fill
                     # ToDO: 平仓盈亏计入方法确定 待思考
-                    self.df_current_holdings['Realized_Pnl'] += \
+                    self.df_current_holdings['Realized_PnL'] += \
                         direction * (latest_close_price - fill.fill_price) * multiplier
                     quantity_to_fill -= self.df_current_positions.loc[df_index[ix], 'quantity']
                 else:
                     quantity_to_fill -= self.df_current_positions.loc[df_index[ix], 'quantity']
                     # ToDO: 平仓盈亏计入方法确定 待思考
-                    self.df_current_holdings['Realized_Pnl'] += \
+                    self.df_current_holdings['Realized_PnL'] += \
                         direction * (latest_close_price - fill.fill_price) * multiplier
 
                 if quantity_to_fill <= 0:
@@ -323,26 +336,26 @@ class Portfolio(object):
                     self.df_current_positions.loc[df_index[ix], 'quantity'] -= quantity_to_fill
                     # ToDO: 平仓盈亏计入方法确定 待思考
                     if self.df_current_positions.loc[df_index[ix], 'position_type'] == 'T0_Pos':
-                        self.df_current_holdings['Realized_Pnl'] += \
+                        self.df_current_holdings['Realized_PnL'] += \
                             direction * (
                                     self.df_current_positions.loc[df_index[ix], 'open_price']
                                     - fill.fill_price
                             ) * multiplier
                     else:
-                        self.df_current_holdings['Realized_Pnl'] += \
+                        self.df_current_holdings['Realized_PnL'] += \
                             direction * (last_settlement_price - fill.fill_price) * multiplier
                     quantity_to_fill -= self.df_current_positions.loc[df_index[ix], 'quantity']
                 else:
                     quantity_to_fill -= self.df_current_positions.loc[df_index[ix], 'quantity']
                     # ToDO: 平仓盈亏计入方法确定 待思考
                     if self.df_current_positions.loc[df_index[ix], 'position_type'] == 'T0_Pos':
-                        self.df_current_holdings['Realized_Pnl'] += \
+                        self.df_current_holdings['Realized_PnL'] += \
                             direction * (
                                     self.df_current_positions.loc[df_index[ix], 'open_price']
                                     - fill.fill_price
                             ) * multiplier
                     else:
-                        self.df_current_holdings['Realized_Pnl'] += \
+                        self.df_current_holdings['Realized_PnL'] += \
                             direction * (last_settlement_price - fill.fill_price) * multiplier
 
                 if quantity_to_fill <= 0:
@@ -363,13 +376,12 @@ class Portfolio(object):
         Parameters:
         fill - The Fill object to update the holdings with.
         """
-
         latest_datetime = self.bars.get_latest_bar_datetime(self.symbol_list[0])
         # Check whether the fill is a long or short
         fill_dir = 0
-        if fill.direction == 'LONG':
+        if fill.direction == 'BUY':
             fill_dir = 1
-        if fill.direction == 'SHORT':
+        if fill.direction == 'SELL':
             fill_dir = -1
 
         fill_type = 0
