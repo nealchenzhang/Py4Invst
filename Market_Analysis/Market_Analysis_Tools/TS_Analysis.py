@@ -100,6 +100,9 @@ class TS_Analysis(object):
               resid.apply(np.square).sum()
         print('Durbin_Watson: ', DW)
         return DW
+    #
+    # def ADF_test(self):
+    #     adfuller(data, 1)
     
 if __name__ == '__main__':
     ex_a = TS_Analysis(df_data)
