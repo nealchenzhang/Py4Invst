@@ -28,7 +28,9 @@ class Portfolio(object):
     portfolio total across bars.
     """
 
-    def __init__(self, bars, events, start_date, initial_capital=100000.0):
+    def __init__(self,
+                 # bars, events,
+                 start_date, initial_capital=100000.0):
         """
         Initialises the portfolio with bars and an event queue. 
         Also includes a starting datetime index and initial capital .
@@ -39,9 +41,10 @@ class Portfolio(object):
         start_date - The start date (bar) of the portfolio.
         initial_capital - The starting capital.
         """
-        self.bars = bars
-        self.events = events
-        self.symbol_list = self.bars.symbol_list
+        # self.bars = bars
+        # self.events = events
+        # self.symbol_list = self.bars.symbol_list
+        self.symbol_list = ['MA801', 'rb1801']
         self.start_date = start_date
         self.initial_capital = initial_capital
 
@@ -242,7 +245,7 @@ class Portfolio(object):
 #########################################################################
     def update_positions_from_fill(self, fill):
         """
-        Takes a Fill object and updates the position dataframe to
+        Takes a Fill object and updates the position DataFrame to
         reflect the new position.
 
         Parameters:
@@ -250,9 +253,13 @@ class Portfolio(object):
         """
         # Todo: fundamental information contract size and etc.
         multiplier = 10
-        latest_close_price = self.bars.get_latest_bar_value(fill.symbol, "Close")
+        # latest_close_price = self.bars.get_latest_bar_value(fill.symbol, "Close")
+        latest_close_price = 4000
+        fill.fill_price = latest_close_price
         # TODO: last settlement price
-        last_settlement_price = self.bars.get_latest_bar_value(fill.symbol, "lastSettlement")
+        # last_settlement_price = self.bars.get_latest_bar_value(fill.symbol, "lastSettlement")
+        last_settlement_price = 3752
+        print("Last trading day settlement price is 3752")
 
         direction = 0
         if fill.direction == 'BUY':
@@ -277,15 +284,15 @@ class Portfolio(object):
             quantity_to_fill = fill.quantity
             if fill.direction == 'BUY':
                 df = self.df_current_positions.where(
-                    self.df_current_positions['position_type'] == 'T0_Pos' &
-                    self.df_current_positions['symbol'] == fill.symbol &
-                    self.df_current_positions['direction'] == 'SELL'
+                    (self.df_current_positions['position_type'] == 'T0_Pos') &
+                    (self.df_current_positions['symbol'] == fill.symbol) &
+                    (self.df_current_positions['direction'] == 'SELL')
                 ).dropna()
             if fill.direction == 'SELL':
                 df = self.df_current_positions.where(
-                    self.df_current_positions['position_type'] == 'T0_Pos' &
-                    self.df_current_positions['symbol'] == fill.symbol &
-                    self.df_current_positions['direction'] == 'BUY'
+                    (self.df_current_positions['position_type'] == 'T0_Pos') &
+                    (self.df_current_positions['symbol'] == fill.symbol) &
+                    (self.df_current_positions['direction'] == 'BUY')
                 ).dropna()
             df_index = df.index.tolist()
 
@@ -318,48 +325,51 @@ class Portfolio(object):
             quantity_to_fill = fill.quantity
             if fill.direction == 'BUY':
                 df = self.df_current_positions.where(
-                    self.df_current_positions['symbol'] == fill.symbol &
-                    self.df_current_positions['direction'] == 'SELL'
+                    (self.df_current_positions['symbol'] == fill.symbol) &
+                    (self.df_current_positions['direction'] == 'SELL')
                 ).dropna()
             if fill.direction == 'SELL':
                 df = self.df_current_positions.where(
-                    self.df_current_positions['symbol'] == fill.symbol &
-                    self.df_current_positions['direction'] == 'BUY'
+                    (self.df_current_positions['symbol'] == fill.symbol) &
+                    (self.df_current_positions['direction'] == 'BUY')
                 ).dropna()
             df_index = df.index.tolist()
+            # print(df_index)
+            # print(quantity_to_fill)
 
-            if len(df_index) == 0:
+            if df['quantity'].sum() <= quantity_to_fill:
                 print("No available position to close.")
-
-            for ix in df_index:
-                if self.df_current_positions.loc[df_index[ix], 'quantity'] >= quantity_to_fill:
-                    self.df_current_positions.loc[df_index[ix], 'quantity'] -= quantity_to_fill
-                    # ToDO: 平仓盈亏计入方法确定 待思考
-                    if self.df_current_positions.loc[df_index[ix], 'position_type'] == 'T0_Pos':
-                        self.df_current_holdings['Realized_PnL'] += \
-                            direction * (
-                                    self.df_current_positions.loc[df_index[ix], 'open_price']
-                                    - fill.fill_price
-                            ) * multiplier
+                pass
+            else:
+                for ix in df_index:
+                    if self.df_current_positions.loc[df_index[ix], 'quantity'] >= quantity_to_fill:
+                        self.df_current_positions.loc[df_index[ix], 'quantity'] -= quantity_to_fill
+                        # ToDO: 平仓盈亏计入方法确定 待思考
+                        if self.df_current_positions.loc[df_index[ix], 'position_type'] == 'T0_Pos':
+                            self.df_current_holdings['Realized_PnL'] += \
+                                direction * (
+                                        self.df_current_positions.loc[df_index[ix], 'open_price']
+                                        - fill.fill_price
+                                ) * multiplier
+                        else:
+                            self.df_current_holdings['Realized_PnL'] += \
+                                direction * (last_settlement_price - fill.fill_price) * multiplier
+                        quantity_to_fill -= self.df_current_positions.loc[df_index[ix], 'quantity']
                     else:
-                        self.df_current_holdings['Realized_PnL'] += \
-                            direction * (last_settlement_price - fill.fill_price) * multiplier
-                    quantity_to_fill -= self.df_current_positions.loc[df_index[ix], 'quantity']
-                else:
-                    quantity_to_fill -= self.df_current_positions.loc[df_index[ix], 'quantity']
-                    # ToDO: 平仓盈亏计入方法确定 待思考
-                    if self.df_current_positions.loc[df_index[ix], 'position_type'] == 'T0_Pos':
-                        self.df_current_holdings['Realized_PnL'] += \
-                            direction * (
-                                    self.df_current_positions.loc[df_index[ix], 'open_price']
-                                    - fill.fill_price
-                            ) * multiplier
-                    else:
-                        self.df_current_holdings['Realized_PnL'] += \
-                            direction * (last_settlement_price - fill.fill_price) * multiplier
+                        quantity_to_fill -= self.df_current_positions.loc[df_index[ix], 'quantity']
+                        # ToDO: 平仓盈亏计入方法确定 待思考
+                        if self.df_current_positions.loc[df_index[ix], 'position_type'] == 'T0_Pos':
+                            self.df_current_holdings['Realized_PnL'] += \
+                                direction * (
+                                        self.df_current_positions.loc[df_index[ix], 'open_price']
+                                        - fill.fill_price
+                                ) * multiplier
+                        else:
+                            self.df_current_holdings['Realized_PnL'] += \
+                                direction * (last_settlement_price - fill.fill_price) * multiplier
 
-                if quantity_to_fill <= 0:
-                    break
+                    if quantity_to_fill <= 0:
+                        break
 
             for ix in df_index:
                 if self.df_current_positions.loc[df_index[ix], 'quantity'] == 0:
@@ -376,7 +386,7 @@ class Portfolio(object):
         Parameters:
         fill - The Fill object to update the holdings with.
         """
-        latest_datetime = self.bars.get_latest_bar_datetime(self.symbol_list[0])
+        # latest_datetime = self.bars.get_latest_bar_datetime(self.symbol_list[0])
         # Check whether the fill is a long or short
         fill_dir = 0
         if fill.direction == 'BUY':
@@ -392,35 +402,35 @@ class Portfolio(object):
         if fill.position_type == 'CLOSE_T0':
             fill_type = -1
 
-        fill_dir = 0
-        if self.current_holdings[s]['direction'] == 'LONG':
-            fill_dir = 1
-        if self.current_holdings[s]['direction'] == 'SHORT':
-            fill_dir = -1
-
-        # ToDO: Multiplier
-        multiplier = 10
-
-        # Calculate UPL based on open_price
-        dh[s]['UPL'] = (self.bars.get_latest_bar_value(s, "Close") -
-                        self.current_positions[s]['price_open']) * \
-                       dir * multiplier * self.current_positions[s]['quantity']
-
-        # Update holdings list with new quantities
-        fill_price = self.bars.get_latest_bar_value(
-            fill.symbol, "Close"
-        )
-        # self.current_holdings[fill.symbol]['price_open']
-        # TODO: 合约基本信息
-        multiplier = 10
-        equity = fill_price * fill.quantity * multiplier
-        long_margin = equity * fill.margin_rate
-        short_margin = equity * fill.margin_rate
-
-        self.current_holdings[fill.symbol]['margin'] += np.max(long_margin, short_margin)
-        self.current_holdings['commission'] += fill.commission
-        self.current_holdings['cash'] -= np.max(long_margin, short_margin)
-        self.current_holdings['total'] -= (cost + fill.commission)
+        # fill_dir = 0
+        # if self.current_holdings[s]['direction'] == 'LONG':
+        #     fill_dir = 1
+        # if self.current_holdings[s]['direction'] == 'SHORT':
+        #     fill_dir = -1
+        #
+        # # ToDO: Multiplier
+        # multiplier = 10
+        #
+        # # Calculate UPL based on open_price
+        # dh[s]['UPL'] = (self.bars.get_latest_bar_value(s, "Close") -
+        #                 self.current_positions[s]['price_open']) * \
+        #                dir * multiplier * self.current_positions[s]['quantity']
+        #
+        # # Update holdings list with new quantities
+        # fill_price = self.bars.get_latest_bar_value(
+        #     fill.symbol, "Close"
+        # )
+        # # self.current_holdings[fill.symbol]['price_open']
+        # # TODO: 合约基本信息
+        # multiplier = 10
+        # equity = fill_price * fill.quantity * multiplier
+        # long_margin = equity * fill.margin_rate
+        # short_margin = equity * fill.margin_rate
+        #
+        # self.current_holdings[fill.symbol]['margin'] += np.max(long_margin, short_margin)
+        # self.current_holdings['commission'] += fill.commission
+        # self.current_holdings['cash'] -= np.max(long_margin, short_margin)
+        # self.current_holdings['total'] -= (cost + fill.commission)
 
         # df_current_holdings = pd.DataFrame(np.array(['MA805', 'BUY', 1, 1, 0, 1, 2825, 850, 3773, 70]).reshape(1, 10),
                                            # columns=columns_holdings)
@@ -454,6 +464,7 @@ class Portfolio(object):
         # df = self.df_current_positions.set_index(['symbol','position_type'])
         # df.loc[symbol]
         order_type = 'MKT'
+        cur_quantity = 0
 
         if direction == 'BUY' and cur_quantity == 0:
             order = OrderEvent(symbol, order_type, mkt_quantity, 'BUY', 'OPEN')
@@ -510,3 +521,26 @@ class Portfolio(object):
         self.equity_curve.to_csv('equity.csv')
         print(os.getcwd())
         return stats
+
+
+if __name__ == "__main__":
+    fill_1 = FillEvent(datetime.datetime(2017,10,31,21,0,0), 'rb1801', 'SHFE',
+                     3, 'BUY', 'OPEN', None)
+    fill_2 = FillEvent(datetime.datetime(2017,10,31,21,0,0), 'rb1801', 'SHFE',
+                     1, 'SELL', 'OPEN', None)
+    fill_3 = FillEvent(datetime.datetime(2017,10,31,21,0,0), 'rb1801', 'SHFE',
+                     2, 'SELL', 'CLOSE', None)
+    fill_1 = FillEvent(datetime.datetime(2017,10,31,21,0,0), 'rb1801', 'SHFE',
+                     3, 'BUY', 'OPEN', None)
+    fill_2 = FillEvent(datetime.datetime(2017,10,31,21,0,0), 'rb1801', 'SHFE',
+                     1, 'SELL', 'OPEN', None)
+    fill_3 = FillEvent(datetime.datetime(2017,10,31,21,0,0), 'rb1801', 'SHFE',
+                     4, 'SELL', 'CLOSE', None)
+
+    Port = Portfolio(start_date=datetime.datetime(2017,10,31,21,0,0))
+    Port.update_fill(fill_1)
+    print(Port.df_current_positions.head(5))
+    Port.update_fill(fill_2)
+    print(Port.df_current_positions.head(5))
+    Port.update_fill(fill_3)
+    print(Port.df_current_positions.head(5))
