@@ -380,6 +380,16 @@ class Portfolio(object):
 
             self.df_current_positions.reset_index(drop=True, inplace=True)
 
+        #################### Update all positions w/o datetime?#############
+        df = self.df_current_positions
+        df.drop(['open_time', 'exchange'], axis=1, inplace=True)
+
+        for i in self.symbol_list:
+            tmp = pd.DataFrame(columns=self.columns_positions)
+            tmp['datetime'] = self.
+
+        # Update timeindex self.df_all_positions['datetime'] =
+
     ########################################################################
     def update_holdings_from_fill(self, fill):
         """
@@ -438,15 +448,6 @@ class Portfolio(object):
         # df_current_holdings = pd.DataFrame(np.array(['MA805', 'BUY', 1, 1, 0, 1, 2825, 850, 3773, 70]).reshape(1, 10),
                                            # columns=columns_holdings)
 
-    def update_all_positions(self):
-        df = self.df_current_positions
-        df.drop(['open_time', 'exchange'], axis=1, inplace=True)
-
-        for i in self.symbol_list:
-            tmp = pd.DataFrame(columns=self.columns_positions)
-
-        # Update timeindex self.df_all_positions['datetime'] =
-
     def update_fill(self, event):
         """
         Updates the portfolio current positions and holdings 
@@ -454,7 +455,6 @@ class Portfolio(object):
         """
         if event.type == 'FILL':
             self.update_positions_from_fill(event)
-            self.update_all_positions()
             self.update_holdings_from_fill(event)
 
     def generate_naive_order(self, signal):
