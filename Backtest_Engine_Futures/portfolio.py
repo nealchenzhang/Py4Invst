@@ -63,7 +63,7 @@ class Portfolio(object):
             'Holding_price_avg', 'holdingPnL', 'margin_Occupied'
         ]
         self.dict_columns_positions = {
-            'datetime': np.datetime64, 'symbol': np.str, 'direction': np.str,
+            'symbol': np.str, 'direction': np.str,
             'total_quantity': np.int64, 'YstPosition': np.int64,
             'T0Position': np.int64, 'Position_avlbl': np.int64,
             'Open_price_avg': np.float64, 'UPL': np.float64,
@@ -128,9 +128,17 @@ class Portfolio(object):
             margin_Occupied:     Margin occupied
 
         """
-        columns = self.columns_positions
-        df_all_positions = pd.DataFrame(columns=columns)
-        df_all_positions['datetime'] = self.start_date
+        df_all_positions = pd.DataFrame(columns=self.columns_positions)
+        for i in self.symbol_list:
+            for direction in ['BUY', 'SELL']:
+                data_array = np.array(
+                    [self.start_date, i, direction, 0, 0, 0, 0,
+                     0.0, 0.0, 0.0, 0.0, 0.0]
+                ).reshape(1, len(self.columns_positions))
+                tmp = pd.DataFrame(data_array, columns=self.columns_positions)
+                tmp = tmp.astype(self.dict_columns_positions)
+                df_all_positions = df_all_positions.append(tmp)
+        print(df_all_positions)
         return df_all_positions
 
     def construct_all_holdings(self):
@@ -379,16 +387,36 @@ class Portfolio(object):
                         self.df_current_positions.drop(ix, inplace=True)
 
             self.df_current_positions.reset_index(drop=True, inplace=True)
+            self.df_current_positions = self.df_current_positions.astype(self.dict_columns_pos_details)
 
-        #################### Update all positions w/o datetime?#############
-        df = self.df_current_positions
+        #################### Update all positions #####################
+        df = self.df_current_positions.copy()
         df.drop(['open_time', 'exchange'], axis=1, inplace=True)
+        df = df.set_index(['symbol', 'direction']).sort_index()
+        # print('df',df)
+        # print('df_current_pos', self.df_current_positions)
+
+        df_current = self.construct_all_positions()
+        # TODO: df 改到 df_current
+        df_current = df_current.set_index(['symbol', 'direction']).sort_index()
 
         for i in self.symbol_list:
-            tmp = pd.DataFrame(columns=self.columns_positions)
-            tmp['datetime'] = self.
+            for Dir in ['BUY', 'SELL']:
+                try:
+                    df.loc[(i, Dir)]
+                except KeyError:
+                    df_current.loc[(i, Dir)]['total_quantity'] = 0.0
 
-        # Update timeindex self.df_all_positions['datetime'] =
+                df_current.loc[(i, Dir)]['total_quantity'] = df.loc[(i, Dir)]['quantity'].sum()
+                df_current.loc[(i, Dir)]['Open_price_avg'] = np.average(
+                    df.loc[(i, Dir)]['open_price'], weights=df.loc[(i, Dir)]['quantity']
+                )
+
+        df_current['datetime'] = fill.timeindex
+        self.df_all_positions = self.df_all_positions.append(df_current, ignore_index=True)
+        self.df_all_positions = self.df_all_positions.set_index(['datetime', 'symbol', 'direction'])
+
+
 
     ########################################################################
     def update_holdings_from_fill(self, fill):
@@ -543,45 +571,36 @@ if __name__ == "__main__":
                      1, 'SELL', 'OPEN', None)
     fill_3 = FillEvent(datetime.datetime(2017,10,31,21,0,0), 'rb1801', 'SHFE',
                      2, 'SELL', 'CLOSE', None)
-    fill_4 = FillEvent(datetime.datetime(2017,10,31,21,0,0), 'rb1801', 'SHFE',
+    fill_4 = FillEvent(datetime.datetime(2017,11,1,21,0,0), 'rb1801', 'SHFE',
                      3, 'BUY', 'OPEN', None)
-    fill_5 = FillEvent(datetime.datetime(2017,10,31,21,0,0), 'rb1801', 'SHFE',
+    fill_5 = FillEvent(datetime.datetime(2017,11,1,21,0,0), 'rb1801', 'SHFE',
                      1, 'SELL', 'OPEN', None)
-    fill_6 = FillEvent(datetime.datetime(2017,10,31,21,0,0), 'rb1801', 'SHFE',
+    fill_6 = FillEvent(datetime.datetime(2017,11,1,21,0,0), 'rb1801', 'SHFE',
                      4, 'SELL', 'CLOSE', None)
 
     fill_11 = FillEvent(datetime.datetime(2017,10,31,21,0,0), 'MA801', 'SHFE',
                      5, 'BUY', 'OPEN', None)
     fill_12 = FillEvent(datetime.datetime(2017,10,31,21,0,0), 'MA801', 'SHFE',
                      3, 'SELL', 'OPEN', None)
-    fill_13 = FillEvent(datetime.datetime(2017,10,31,21,0,0), 'MA801', 'SHFE',
+    fill_13 = FillEvent(datetime.datetime(2017,11,1,21,0,0), 'MA801', 'SHFE',
                      2, 'BUY', 'CLOSE_T0', None)
-    fill_14 = FillEvent(datetime.datetime(2017,10,31,21,0,0), 'MA801', 'SHFE',
+    fill_14 = FillEvent(datetime.datetime(2017,11,1,21,0,0), 'MA801', 'SHFE',
                      3, 'BUY', 'CLOSE_T0', None)
-    fill_15 = FillEvent(datetime.datetime(2017,10,31,21,0,0), 'MA801', 'SHFE',
+    fill_15 = FillEvent(datetime.datetime(2017,11,1,21,0,0), 'MA801', 'SHFE',
                      1, 'SELL', 'OPEN', None)
 
     Port = Portfolio(start_date=datetime.datetime(2017,10,31,21,0,0))
     Port.update_fill(fill_1)
-    print(Port.df_current_positions)
     Port.update_fill(fill_2)
-    print(Port.df_current_positions)
     Port.update_fill(fill_3)
-    print(Port.df_current_positions)
     Port.update_fill(fill_4)
-    print(Port.df_current_positions)
     Port.update_fill(fill_5)
-    print(Port.df_current_positions)
     Port.update_fill(fill_6)
-    print(Port.df_current_positions)
     Port.update_fill(fill_11)
-    print(Port.df_current_positions)
     Port.update_fill(fill_12)
-    print(Port.df_current_positions)
     Port.update_fill(fill_13)
-    print(Port.df_current_positions)
     Port.update_fill(fill_14)
-    print(Port.df_current_positions)
     Port.update_fill(fill_15)
-    print(Port.df_current_positions)
+
+    print(Port.df_all_positions)
 
