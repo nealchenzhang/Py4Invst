@@ -72,12 +72,13 @@ class Portfolio(object):
         }
         self.columns_holdings = [
             'preBalance', 'Realized_PnL', 'MTM_PnL', 'Holding_PnL', 'Margin',
-            'Commission', 'Fund_avlbl', 'Frozen_fund', 'Risk Degree', 'Balance'
+            'Commission', 'Fund_avlbl', 'Frozen_fund', 'Risk Degree', 'Balance',
+            'datetime'
         ]
         self.dict_columns_holdings = {
             'preBalance': np.float64, 'Realized_PnL': np.float64, 'MTM_PnL': np.float64,
             'Holding_PnL': np.float64, 'Margin': np.float64, 'Commission': np.float64,
-            'Fund_avlbl': np.float64, 'Frozen_Fund': np.float64, 'Risk Degree': np.float64,
+            'Fund_avlbl': np.float64, 'Frozen_fund': np.float64, 'Risk Degree': np.float64,
             'Balance': np.float64
         }
 
@@ -200,8 +201,12 @@ class Portfolio(object):
             datetime:            The holdings for particular datetime
 
         """
-        columns = self.columns_holdings.append('datetime')
-        df_all_holdings = pd.DataFrame(columns=columns)
+        data_array = np.array(
+            [self.initial_capital, 0.0, 0.0, 0.0, 0.0, 0.0,
+             self.initial_capital, 0.0, 0.0, self.initial_capital, self.start_date]
+        ).reshape(1, len(self.columns_holdings))
+        df_all_holdings = pd.DataFrame(data_array, columns=self.columns_holdings)
+        df_all_holdings = df_all_holdings.astype(self.dict_columns_holdings)
         return df_all_holdings
 
     def construct_current_holdings(self):
@@ -229,8 +234,12 @@ class Portfolio(object):
                                  preBalance
 
         """
-        columns = self.columns_holdings
-        df_current_holdings = pd.DataFrame(columns=columns)
+        data_array = np.array(
+            [self.initial_capital, 0.0, 0.0, 0.0, 0.0, 0.0,
+             self.initial_capital, 0.0, 0.0, self.initial_capital, self.start_date]
+        ).reshape(1, len(self.columns_holdings))
+        df_current_holdings = pd.DataFrame(data_array, columns=self.columns_holdings)
+        df_current_holdings = df_current_holdings.astype(self.dict_columns_holdings)
         return df_current_holdings
 
     def update_timeindex(self, event):
@@ -297,7 +306,10 @@ class Portfolio(object):
         multiplier = 10
         # latest_close_price = self.bars.get_latest_bar_value(fill.symbol, "Close")
         latest_close_price = 4000 -np.random.randint(100)
-        fill.fill_price = latest_close_price
+        if fill.fill_price == None:
+            fill.fill_price = latest_close_price
+        else:
+            fill.fill_price = 3000
         # TODO: last settlement price
         # last_settlement_price = self.bars.get_latest_bar_value(fill.symbol, "lastSettlement")
         last_settlement_price = 3752
@@ -344,17 +356,23 @@ class Portfolio(object):
             else:
                 for ix in df_index:
                     if self.df_current_pos_details.loc[ix, 'quantity'] >= quantity_to_fill:
+                        quant = quantity_to_fill.copy()
                         self.df_current_pos_details.loc[ix, 'quantity'] -= quantity_to_fill
-                        # ToDO: 平仓盈亏计入方法确定 待思考
                         self.df_current_holdings['Realized_PnL'] += \
-                            direction * (latest_close_price - fill.fill_price) * multiplier
+                            quant * direction * (
+                                    self.df_current_pos_details.loc[ix, 'open_price'] -
+                                    fill.fill_price
+                            ) * multiplier
                         quantity_to_fill -= self.df_current_pos_details.loc[ix, 'quantity']
                     else:
                         quantity_to_fill -= self.df_current_pos_details.loc[ix, 'quantity']
+                        quant = self.df_current_pos_details.loc[ix, 'quantity'].copy()
                         self.df_current_pos_details.loc[ix, 'quantity'] -= self.df_current_pos_details.loc[ix, 'quantity']
-                        # ToDO: 平仓盈亏计入方法确定 待思考
                         self.df_current_holdings['Realized_PnL'] += \
-                            direction * (latest_close_price - fill.fill_price) * multiplier
+                            quant * direction * (
+                                    self.df_current_pos_details.loc[ix, 'open_price'] -
+                                    fill.fill_price
+                            ) * multiplier
 
                     if quantity_to_fill <= 0:
                         break
@@ -387,13 +405,13 @@ class Portfolio(object):
                 for ix in df_index:
                     if self.df_current_pos_details.loc[ix, 'quantity'] >= quantity_to_fill:
                         self.df_current_pos_details.loc[ix, 'quantity'] -= quantity_to_fill
-                        # ToDO: 平仓盈亏计入方法确定 待思考
                         if self.df_current_pos_details.loc[ix, 'position_type'] == 'T0_Pos':
                             self.df_current_holdings['Realized_PnL'] += \
                                 direction * (
                                         self.df_current_pos_details.loc[ix, 'open_price']
                                         - fill.fill_price
                                 ) * multiplier
+                            print('成交价格', fill.fill_price)
                         else:
                             self.df_current_holdings['Realized_PnL'] += \
                                 direction * (last_settlement_price - fill.fill_price) * multiplier
@@ -401,13 +419,13 @@ class Portfolio(object):
                     else:
                         quantity_to_fill -= self.df_current_pos_details.loc[ix, 'quantity']
                         self.df_current_pos_details.loc[ix, 'quantity'] -= self.df_current_pos_details.loc[ix, 'quantity']
-                        # ToDO: 平仓盈亏计入方法确定 待思考
                         if self.df_current_pos_details.loc[ix, 'position_type'] == 'T0_Pos':
                             self.df_current_holdings['Realized_PnL'] += \
                                 direction * (
                                         self.df_current_pos_details.loc[ix, 'open_price']
                                         - fill.fill_price
                                 ) * multiplier
+                            print('成交价格', fill.fill_price)
                         else:
                             self.df_current_holdings['Realized_PnL'] += \
                                 direction * (last_settlement_price - fill.fill_price) * multiplier
@@ -421,6 +439,10 @@ class Portfolio(object):
 
             self.df_current_pos_details.reset_index(drop=True, inplace=True)
             self.df_current_pos_details = self.df_current_pos_details.astype(self.dict_columns_pos_details)
+
+        print(self.df_current_pos_details)
+        print('#'*40)
+        print(self.df_current_holdings)
 
     def update_positions_from_fill(self, fill):
         #################### Update all positions #####################
@@ -439,7 +461,7 @@ class Portfolio(object):
 
         df_current_positions['datetime'] = fill.timeindex
         self.df_current_positions = df_current_positions
-        print(self.df_current_positions)
+        # print(self.df_current_positions)
         # self.df_all_positions = self.df_all_positions.append(df_current, ignore_index=True)
         # self.df_all_positions = self.df_all_positions.set_index(['datetime', 'symbol', 'direction'])
 
@@ -597,36 +619,36 @@ fill_2 = FillEvent(datetime.datetime(2017,10,31,21,0,0), 'rb1801', 'SHFE',
                  1, 'SELL', 'OPEN', None)
 fill_3 = FillEvent(datetime.datetime(2017,10,31,21,0,0), 'rb1801', 'SHFE',
                  2, 'SELL', 'CLOSE', None)
-fill_4 = FillEvent(datetime.datetime(2017,11,1,21,0,0), 'rb1801', 'SHFE',
-                 3, 'BUY', 'OPEN', None)
-fill_5 = FillEvent(datetime.datetime(2017,11,1,21,0,0), 'rb1801', 'SHFE',
-                 1, 'SELL', 'OPEN', None)
-fill_6 = FillEvent(datetime.datetime(2017,11,1,21,0,0), 'rb1801', 'SHFE',
-                 4, 'SELL', 'CLOSE', None)
+# fill_4 = FillEvent(datetime.datetime(2017,11,1,21,0,0), 'rb1801', 'SHFE',
+#                  3, 'BUY', 'OPEN', None)
+# fill_5 = FillEvent(datetime.datetime(2017,11,1,21,0,0), 'rb1801', 'SHFE',
+#                  1, 'SELL', 'OPEN', None)
+# fill_6 = FillEvent(datetime.datetime(2017,11,1,21,0,0), 'rb1801', 'SHFE',
+#                  4, 'SELL', 'CLOSE', None)
 
-fill_11 = FillEvent(datetime.datetime(2017,10,31,21,0,0), 'MA801', 'SHFE',
-                 5, 'BUY', 'OPEN', None)
-fill_12 = FillEvent(datetime.datetime(2017,10,31,21,0,0), 'MA801', 'SHFE',
-                 3, 'SELL', 'OPEN', None)
-fill_13 = FillEvent(datetime.datetime(2017,11,1,21,0,0), 'MA801', 'SHFE',
-                 2, 'BUY', 'CLOSE_T0', None)
-fill_14 = FillEvent(datetime.datetime(2017,11,1,21,0,0), 'MA801', 'SHFE',
-                 3, 'BUY', 'CLOSE_T0', None)
-fill_15 = FillEvent(datetime.datetime(2017,11,1,21,0,0), 'MA801', 'SHFE',
-                 1, 'SELL', 'OPEN', None)
+# fill_11 = FillEvent(datetime.datetime(2017,10,31,21,0,0), 'MA801', 'SHFE',
+#                  5, 'BUY', 'OPEN', None)
+# fill_12 = FillEvent(datetime.datetime(2017,10,31,21,0,0), 'MA801', 'SHFE',
+#                  3, 'SELL', 'OPEN', None)
+# fill_13 = FillEvent(datetime.datetime(2017,11,1,21,0,0), 'MA801', 'SHFE',
+#                  2, 'BUY', 'CLOSE_T0', None)
+# fill_14 = FillEvent(datetime.datetime(2017,11,1,21,0,0), 'MA801', 'SHFE',
+#                  3, 'BUY', 'CLOSE_T0', None)
+# fill_15 = FillEvent(datetime.datetime(2017,11,1,21,0,0), 'MA801', 'SHFE',
+#                  1, 'SELL', 'OPEN', None)
 
 Port = Portfolio(start_date=datetime.datetime(2017,10,31,21,0,0))
 Port.update_fill(fill_1)
 Port.update_fill(fill_2)
 Port.update_fill(fill_3)
-Port.update_fill(fill_4)
-Port.update_fill(fill_5)
-Port.update_fill(fill_6)
-Port.update_fill(fill_11)
-Port.update_fill(fill_12)
-Port.update_fill(fill_13)
-Port.update_fill(fill_14)
-Port.update_fill(fill_15)
+# Port.update_fill(fill_4)
+# Port.update_fill(fill_5)
+# Port.update_fill(fill_6)
+# Port.update_fill(fill_11)
+# Port.update_fill(fill_12)
+# Port.update_fill(fill_13)
+# Port.update_fill(fill_14)
+# Port.update_fill(fill_15)
 # print(Port.df_current_positions)
 # print(Port.df_current_pos_details)
 #
