@@ -356,7 +356,7 @@ class Portfolio(object):
             else:
                 for ix in df_index:
                     if self.df_current_pos_details.loc[ix, 'quantity'] >= quantity_to_fill:
-                        quant = quantity_to_fill.copy()
+                        quant = quantity_to_fill
                         self.df_current_pos_details.loc[ix, 'quantity'] -= quantity_to_fill
                         self.df_current_holdings['Realized_PnL'] += \
                             quant * direction * (
@@ -366,7 +366,7 @@ class Portfolio(object):
                         quantity_to_fill -= self.df_current_pos_details.loc[ix, 'quantity']
                     else:
                         quantity_to_fill -= self.df_current_pos_details.loc[ix, 'quantity']
-                        quant = self.df_current_pos_details.loc[ix, 'quantity'].copy()
+                        quant = self.df_current_pos_details.loc[ix, 'quantity']
                         self.df_current_pos_details.loc[ix, 'quantity'] -= self.df_current_pos_details.loc[ix, 'quantity']
                         self.df_current_holdings['Realized_PnL'] += \
                             quant * direction * (
@@ -404,10 +404,11 @@ class Portfolio(object):
             else:
                 for ix in df_index:
                     if self.df_current_pos_details.loc[ix, 'quantity'] >= quantity_to_fill:
+                        quant = quantity_to_fill
                         self.df_current_pos_details.loc[ix, 'quantity'] -= quantity_to_fill
                         if self.df_current_pos_details.loc[ix, 'position_type'] == 'T0_Pos':
                             self.df_current_holdings['Realized_PnL'] += \
-                                direction * (
+                                quant * direction * (
                                         self.df_current_pos_details.loc[ix, 'open_price']
                                         - fill.fill_price
                                 ) * multiplier
@@ -418,10 +419,11 @@ class Portfolio(object):
                         quantity_to_fill -= self.df_current_pos_details.loc[ix, 'quantity']
                     else:
                         quantity_to_fill -= self.df_current_pos_details.loc[ix, 'quantity']
+                        quant = self.df_current_pos_details.loc[ix, 'quantity']
                         self.df_current_pos_details.loc[ix, 'quantity'] -= self.df_current_pos_details.loc[ix, 'quantity']
                         if self.df_current_pos_details.loc[ix, 'position_type'] == 'T0_Pos':
                             self.df_current_holdings['Realized_PnL'] += \
-                                direction * (
+                                quant * direction * (
                                         self.df_current_pos_details.loc[ix, 'open_price']
                                         - fill.fill_price
                                 ) * multiplier
@@ -617,7 +619,7 @@ fill_1 = FillEvent(datetime.datetime(2017,10,31,21,0,0), 'rb1801', 'SHFE',
                  3, 'BUY', 'OPEN', None)
 fill_2 = FillEvent(datetime.datetime(2017,10,31,21,0,0), 'rb1801', 'SHFE',
                  1, 'SELL', 'OPEN', None)
-fill_3 = FillEvent(datetime.datetime(2017,10,31,21,0,0), 'rb1801', 'SHFE',
+fill_3 = FillEvent(datetime.datetime(2017,11,1,1,0,0), 'rb1801', 'SHFE',
                  2, 'SELL', 'CLOSE', None)
 # fill_4 = FillEvent(datetime.datetime(2017,11,1,21,0,0), 'rb1801', 'SHFE',
 #                  3, 'BUY', 'OPEN', None)
