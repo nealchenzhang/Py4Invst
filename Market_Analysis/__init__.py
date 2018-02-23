@@ -19,5 +19,6 @@
 from .Market_Analysis_Tools import *
 from .Futures_Market import *
 from .Stocks_Market import *
+import Market_Analysis
 
 __author__ = 'Neal Chen Zhang'
