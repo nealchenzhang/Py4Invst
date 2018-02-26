@@ -3,14 +3,14 @@
 
 ###############################################################################
 #
-# Created on Mon Apr 10 14:20:47 2017
+# Created on Fri Mar 31 15:57:14 2017
 
-# @author: nealcz @Aian_fund
+# @author: NealChenZhang
 
-# This program is personal trading platform desiged when employed in 
-# Aihui Asset Management as a quantatitive analyst.
-# 
-# Contact: 
+# This program is personal trading platform designed when employed in
+# Aihui Asset Management as a quantitative analyst.
+#
+# Contact:
 # Name: Chen Zhang (Neal)
 # Mobile: (+86) 139-1706-0712
 # E-mail: nealzc1991@gmail.com
@@ -54,8 +54,7 @@ Guidelines:
         * Coefficient is significantly different from zero --> ARCH exists, use Generalized Least Square(GLS)
     8. Compare the out-of-sample RMSE (the smaller, the better)
 """
-from __future__ import division
-from __future__ import print_function
+
 print(__doc__)
 
 import numpy as np
