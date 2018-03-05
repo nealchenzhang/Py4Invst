@@ -43,7 +43,77 @@ data = pd.read_csv('http://www-bcf.usc.edu/~gareth/ISL/Advertising.csv', index_c
 seaborn.pairplot(data, x_vars=['TV', 'radio', 'newspaper'], y_vars='sales', kind='scatter')
 
 # model specification
+# Statsmodel
 print('sales~TV+radio+newspaper')
 model_spec = 'sales~TV+radio+newspaper'
 lm_model = smf.ols(formula=model_spec, data=data).fit()
 print(lm_model.summary())
+
+# scikit-learn model
+feature_cols = ['TV', 'radio', 'newspaper']
+X = data[feature_cols]
+y = data['sales']
+
+from sklearn.linear_model import LinearRegression
+lm = LinearRegression(fit_intercept=True)
+lm.fit(X, y)
+
+print(lm.intercept_)
+zip(feature_cols, lm.coef_)
+lm.score(X, y)
+
+# Dummy Variable
+# set a seed for reproducibility
+np.random.seed(12345)
+
+# create a Series of booleans in which roughly half are True
+nums = np.random.rand(len(data))
+mask_large = nums > 0.5
+
+# initially set size to small, then change roughly half to be large
+data['size'] = 'small'
+data.loc[mask_large, 'size'] = 'large'
+data.head()
+# create a new Series called IsLarge
+data['IsLarge'] = data['size'].map({'small':0, 'large':1})
+data.head()
+
+# create X and y
+feature_cols = ['TV', 'radio', 'newspaper', 'IsLarge']
+X = data[feature_cols]
+y = data['sales']
+
+# instantiate, fit
+lm = LinearRegression()
+lm.fit(X, y)
+print(lm.coef_)
+
+# set a seed for reproducibility
+np.random.seed(123456)
+
+# assign roughly one third of observations to each group
+nums = np.random.rand(len(data))
+mask_suburban = (nums > 0.33) & (nums < 0.66)
+mask_urban = nums > 0.66
+data['Area'] = 'rural'
+data.loc[mask_suburban, 'Area'] = 'suburban'
+data.loc[mask_urban, 'Area'] = 'urban'
+data.head()
+# create three dummy variables using get_dummies, then exclude the first dummy column
+area_dummies = pd.get_dummies(data.Area, prefix='Area').iloc[:, 1:]
+
+# concatenate the dummy variable columns onto the original DataFrame (axis=0 means rows, axis=1 means columns)
+data = pd.concat([data, area_dummies], axis=1)
+data.head()
+
+# create X and y
+feature_cols = ['TV', 'radio', 'newspaper', 'IsLarge', 'Area_suburban', 'Area_urban']
+X = data[feature_cols]
+y = data['sales']
+
+# instantiate, fit
+lm = LinearRegression()
+lm.fit(X, y)
+
+# print coefficients
+print(lm.coef_)

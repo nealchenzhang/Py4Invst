@@ -15,4 +15,5 @@ def Global_Macro_Indicator(term, dict_indicator):
         print()
 
     elif term == 'long-term':
+        print()
 
