@@ -4,7 +4,7 @@ from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 
 import os
-os.chdir('/home/nealzhangchen/Documents/Python/Py4Invst/Portfolio')
+os.chdir('/home/nealzc/PycharmProjects/Py4Invst/Portfolio')
 
 class Port_Opt(object):
     def __init__(self, port_list):
