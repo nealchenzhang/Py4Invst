@@ -19,7 +19,7 @@ import webbrowser
 
 
 import os
-os.chdir('/home/nealzhangchen/Documents/Python/Py4Invst/Market_Analysis/Stocks_Market')
+os.chdir('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Stocks_Market')
 
 # # Technical Indicators
 # #########################################################
