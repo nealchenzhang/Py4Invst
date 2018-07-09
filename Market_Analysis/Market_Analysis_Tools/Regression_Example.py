@@ -107,7 +107,7 @@ data = pd.concat([data, area_dummies], axis=1)
 data.head()
 
 # create X and y
-feature_cols = ['TV', 'radio', 'newspaper', 'IsLarge', 'Area_suburban', 'Area_urban']
+feature_cols = ['TV', 'radio', 'newspaper', 'Area_suburban', 'Area_urban']
 X = data[feature_cols]
 y = data['sales']
 
