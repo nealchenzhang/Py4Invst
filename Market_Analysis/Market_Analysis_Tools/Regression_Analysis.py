@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-import statsmodels.api as sm
+# import statsmodels.api as sm
 import statsmodels.formula.api as smf
 
 import seaborn
@@ -92,47 +92,6 @@ class Regression_Analysis(object):
             else:
                 print('We failed to reject the null hypothesis at the {:.2%} level of significance'.format(i))
 
-    def Multiple_Regression(self):
-        """
-
-        :param y:
-        :param ls_x:
-        :param data_set:
-        :return:
-        """
-        y = self.y
-        ls_x = self.ls_x
-        data_set = self.data_set
-        # Scatter Plot
-        seaborn.pairplot(data_set, x_vars=ls_x, y_vars=y, kind='scatter')
-        plt.show()
-
-        # Model specification and OLS
-        str_model_spec = str(y) + ' ~ '
-        num = len(ls_x)
-        for i in range(num):
-            if i == 0:
-                str_model_spec += ls_x[i]
-            else:
-                str_model_spec += ' + ' + str(ls_x[i])
-        print(str_model_spec)
-        lm_model = smf.ols(formula=str_model_spec, data=data_set).fit()
-        return lm_model
-
-    def MultipleRegression_Assessment(self):
-        print('=' * 80)
-        print('MultipleRegression_Assessment')
-        print('=' * 80)
-        if self.Misspecification_Check() == 1:
-            print('Pass the model misspecification check.')
-        else:
-            print('Please correct the model misspecification.')
-        print('=' * 80)
-        print(self.Multiple_Regression().summary())
-        print('Are individual coefficients statistically significant?')
-        print('Is the model statistically significant?')
-
-
     def Misspecification_Check(self):
         print('This is the check for misspecification.')
         a = 'Omitting a Variable?'
@@ -159,16 +118,126 @@ class Regression_Analysis(object):
         else:
             pass
 
+    def Multiple_Regression(self):
+        """
+
+        :param y:
+        :param ls_x:
+        :param data_set:
+        :return:
+        """
+        print('# 3. Model Construction')
+        y = self.y
+        ls_x = self.ls_x
+        data_set = self.data_set
+        # Scatter Plot
+        seaborn.pairplot(data_set, x_vars=ls_x, y_vars=y, kind='scatter')
+        plt.show()
+
+        # Model specification and OLS
+        str_model_spec = str(y) + ' ~ '
+        num = len(ls_x)
+        for i in range(num):
+            if i == 0:
+                str_model_spec += ls_x[i]
+            else:
+                str_model_spec += ' + ' + str(ls_x[i])
+        print(str_model_spec)
+        lm_model = smf.ols(formula=str_model_spec, data=data_set).fit()
+        return lm_model
+
+    def Heteroskadasticity_Check(self, model):
+        """
+
+        :param model:
+        :return:
+        """
+        # print('The effects of Heteroskedasticity:')
+        # print('The standard errors are usually unreliable estimates.\n'
+        #       "The coefficient estimates aren't affected.\n"
+        #       "If the standard errors are too small, but the coefficient estimates"
+        #       " themselves are not affected,\nthe t-statistics will be too large and"
+        #       " the null hypothesis of no statistical significance is rejected too"
+        #       " often.\n"
+        #       "The F-test is also unreliable.")
+        print('# 4. Heteroskedasticity')
+        print('-' * 40)
+        print('H0: no conditional heteroskedasticity')
+        ds_res = model.resid
+        ds_res.name = 'resid'
+        data_res = pd.concat([self.data_set.loc[:, self.ls_x], ds_res], axis=1)
+
+        # Resid model specification and OLS
+        str_resid_model_spec = 'resid' + ' ~ '
+        k = len(self.ls_x)
+        for i in range(k):
+            if i == 0:
+                str_resid_model_spec += self.ls_x[i]
+            else:
+                str_resid_model_spec += ' + ' + str(self.ls_x[i])
+        resid_reg = smf.ols(formula=str_resid_model_spec, data=data_res).fit()
+        BP = resid_reg.rsquared * ds_res.size
+
+        # Hypothesis test
+        one_tailed_alpha = [0.1, 0.05, 0.01]
+        from scipy import stats
+        print('-' * 40)
+        print('Calculated BP value is {}.\nWith df = {}'.format(BP, k))
+        num = 0
+        for i in one_tailed_alpha:
+            c_chi = stats.chi2.ppf(q=1-i, df=k)
+            if BP > c_chi:
+                print('Reject the null hypothesis at the {:.2%} level of significance'.format(i))
+                print('#'*80)
+                print('May have a problem with conditional heteroskedasticity.')
+            else:
+                print('We failed to reject the null hypothesis at the {:.2%} level of significance'.format(i))
+                num += 1
+        if num == 3:
+            return 1
+        else:
+            return 0
+
+    def MultipleRegression_Assessment(self):
+        print('=' * 80)
+        print('MultipleRegression_Assessment')
+        print('=' * 80)
+        if self.Misspecification_Check() == 1:
+            print('Pass the model misspecification check.')
+        else:
+            print('Please correct the model misspecification.')
+        print('=' * 80)
+        lm_model = self.Multiple_Regression()
+        print(lm_model.summary())
+        print('Are individual coefficients statistically significant?')
+        print('Is the model statistically significant?')
+        print('=' * 80)
+        print('Is heteroskedasticity present?')
+        if self.Heteroskadasticity_Check(lm_model) == 1:
+            print('Conditional heteroskedasticity is not found.')
+        else:
+            print('Try use White-corrected standard errors.\nor GLS model.')
+        print('=' * 80)
+
+
+
+
+
 
 if __name__ == '__main__':
     print('Current working directory is:')
     print(os.getcwd())
-    df = pd.read_excel(os.getcwd()+'/cointegration.xls')
-    df.set_index('Date', inplace=True)
-    df.i1701 = np.log(df.i1701)
-    df.rb1701 = np.log(df.rb1701)
-    test = Regression_Analysis(ls_x=['i1701'], y='rb1701',data_set=df)
+    # df = pd.read_excel(os.getcwd()+'/cointegration.xls')
+    # df.set_index('Date', inplace=True)
+    # df.i1701 = np.log(df.i1701)
+    # df.rb1701 = np.log(df.rb1701)
+    # test = Regression_Analysis(ls_x=['i1701'], y='rb1701',data_set=df)
     # test.Correlation_Test(x='i1701', y='rb1701')
     # test.Multiple_Regression()
     # test.Misspecification_Check()
+    # test.MultipleRegression_Assessment()
+
+    data = pd.read_csv('http://www-bcf.usc.edu/~gareth/ISL/Advertising.csv', index_col=0)
+    test = Regression_Analysis(y='sales', ls_x=['TV', 'radio', 'newspaper'], data_set=data)
     test.MultipleRegression_Assessment()
+
