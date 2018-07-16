@@ -21,3 +21,6 @@ for file in os.listdir('./RB'):
     str_v = file.split('.')[0] + '_v'
     str_po = file.split('.')[0] + '_po'
     df_RB.loc[:, str_price] = pd.read_excel(file)
+
+
+lhkjk
