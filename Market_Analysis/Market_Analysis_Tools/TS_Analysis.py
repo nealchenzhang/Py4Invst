@@ -60,6 +60,9 @@ print(__doc__)
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn
+import arch
+
 import statsmodels.api as sm
 from statsmodels.tsa.stattools import adfuller
 
@@ -104,7 +107,13 @@ class TS_Analysis(object):
     #     adfuller(data, 1)
     
 if __name__ == '__main__':
-    ex_a = TS_Analysis(df_data)
-    ex_a.Durbin_Watson(ex_a.ols('X','Y').resid)
-    
+    df_data = pd.read_excel('./Market_Analysis/Market_Analysis_Tools/cointegration.xls')
+    df_data.set_index('Date', inplace=True)
+    # df_data = df_data.loc[:,'i1701']
+
+    ts = df_data.apply(np.log)
+    ex_a = TS_Analysis(ts)
+    ex_a.Durbin_Watson(ex_a.ols('i1701','rb1701').resid)
+
+
     

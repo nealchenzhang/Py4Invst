@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# import statsmodels.api as sm
+import statsmodels.api as sm
 import statsmodels.formula.api as smf
 
 import seaborn
@@ -198,6 +198,30 @@ class Regression_Analysis(object):
         else:
             return 0
 
+    def Autocorrelation_Check(self, model):
+        """
+
+        :param model:
+        :return:
+        """
+        print('# 5. Autocorrelation')
+        print('-' * 40)
+        print('H0: no positive serial correlation')
+        model.resid.plot()
+        plt.show()
+        DW = sm.stats.durbin_watson(model.resid)
+        print('The calculated DW is {}'.format(DW))
+        print('DW~=2(1-r)')
+        print('r~={}'.format(1-DW/2))
+        k = len(self.ls_x)
+        n = self.data_set.loc[:, self.y].size
+        print('Degree of freedom is {} with {} independent variables.'.format(n, k))
+        print('If {} < DL, we reject the null hypothesis and '
+              'conclude that Positive Serial Correlation exists.'.format(DW))
+        print('If {} > DU, we failed to reject the null hypothesis.'.format(DW))
+
+
+
     def MultipleRegression_Assessment(self):
         print('=' * 80)
         print('MultipleRegression_Assessment')
@@ -218,6 +242,9 @@ class Regression_Analysis(object):
         else:
             print('Try use White-corrected standard errors.\nor GLS model.')
         print('=' * 80)
+        self.Autocorrelation_Check(lm_model)
+
+
 
 
 
@@ -227,17 +254,22 @@ class Regression_Analysis(object):
 if __name__ == '__main__':
     print('Current working directory is:')
     print(os.getcwd())
-    # df = pd.read_excel(os.getcwd()+'/cointegration.xls')
-    # df.set_index('Date', inplace=True)
-    # df.i1701 = np.log(df.i1701)
-    # df.rb1701 = np.log(df.rb1701)
-    # test = Regression_Analysis(ls_x=['i1701'], y='rb1701',data_set=df)
+    df = pd.read_excel(os.getcwd()+'/cointegration.xls')
+    df.set_index('Date', inplace=True)
+    df.i1701 = np.log(df.i1701)
+    df.rb1701 = np.log(df.rb1701)
+    test = Regression_Analysis(ls_x=['i1701'], y='rb1701',data_set=df)
     # test.Correlation_Test(x='i1701', y='rb1701')
-    # test.Multiple_Regression()
     # test.Misspecification_Check()
+    # model = test.Multiple_Regression();
+
+    test.MultipleRegression_Assessment()
+
+    # data = pd.read_csv('http://www-bcf.usc.edu/~gareth/ISL/Advertising.csv', index_col=0)
+    # test = Regression_Analysis(y='sales', ls_x=['TV', 'radio', 'newspaper'], data_set=data)
     # test.MultipleRegression_Assessment()
 
-    data = pd.read_csv('http://www-bcf.usc.edu/~gareth/ISL/Advertising.csv', index_col=0)
-    test = Regression_Analysis(y='sales', ls_x=['TV', 'radio', 'newspaper'], data_set=data)
-    test.MultipleRegression_Assessment()
+    # df_data = pd.read_excel('./Market_Analysis/Market_Analysis_Tools/cointegration.xls')
+    # df_data.set_index('Date', inplace=True)
+    # df_data = df_data.loc[:,'i1701']
 

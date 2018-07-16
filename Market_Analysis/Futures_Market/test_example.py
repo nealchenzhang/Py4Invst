@@ -11,7 +11,7 @@ from numpy import arange, sin, pi
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
-from Data import *
+from Data.Stocks_Data import MongoDB
 
 
 class MyMplCanvas(FigureCanvas):
