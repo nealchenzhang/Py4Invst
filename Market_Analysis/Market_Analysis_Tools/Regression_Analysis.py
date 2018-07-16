@@ -220,7 +220,20 @@ class Regression_Analysis(object):
               'conclude that Positive Serial Correlation exists.'.format(DW))
         print('If {} > DU, we failed to reject the null hypothesis.'.format(DW))
 
+    def Multicollinearity_Check(self, model):
+        """
 
+        :return:
+        """
+        print('# 6. Multicollinearity')
+        print('-' * 40)
+        print("F_pvalue is {:.4f}".format(model.f_pvalue))
+        print("R-squared is {:.4f}".format(model.rsquared))
+        print("Adj R-squared is {:.4f}".format(model.rsquared_adj))
+        print(model.pvalues)
+        print("If F_test is statistically significant\nand R-squared is high,"
+              "while t-tests indicate that\nnone of the individual coefficients is"
+              "significantly different thant zero, multicollinearity may exist.")
 
     def MultipleRegression_Assessment(self):
         print('=' * 80)
@@ -242,13 +255,9 @@ class Regression_Analysis(object):
         else:
             print('Try use White-corrected standard errors.\nor GLS model.')
         print('=' * 80)
+        # TODO change the criteria with DW use the econometrics material MFIN 701
         self.Autocorrelation_Check(lm_model)
-
-
-
-
-
-
+        self.Multicollinearity_Check(lm_model)
 
 
 if __name__ == '__main__':
