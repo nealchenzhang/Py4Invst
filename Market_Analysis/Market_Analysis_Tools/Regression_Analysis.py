@@ -206,7 +206,7 @@ class Regression_Analysis(object):
         """
         print('# 5. Autocorrelation')
         print('-' * 40)
-        print('H0: no positive serial correlation')
+        print('H0: no serial correlation')
         model.resid.plot()
         plt.show()
         DW = sm.stats.durbin_watson(model.resid)
@@ -215,10 +215,19 @@ class Regression_Analysis(object):
         print('r~={}'.format(1-DW/2))
         k = len(self.ls_x)
         n = self.data_set.loc[:, self.y].size
-        print('Degree of freedom is {} with {} independent variables.'.format(n, k))
-        print('If {} < DL, we reject the null hypothesis and '
-              'conclude that Positive Serial Correlation exists.'.format(DW))
-        print('If {} > DU, we failed to reject the null hypothesis.'.format(DW))
+        # print('Degree of freedom is {} with {} independent variables.'.format(n, k))
+        # print('If {} < DL, we reject the null hypothesis and '
+        #       'conclude that Positive Serial Correlation exists.'.format(DW))
+        # print('If {} > DU, we failed to reject the null hypothesis.'.format(DW))
+        err = 0.15
+        if (4-DW) < err:
+            print('Reject null hypothesis and conclude that rho<0')
+        if np.abs(DW-2) < err:
+            print('Fail to reject null hypothesis and conclude that rho=0')
+        if DW-0 < err:
+            print('Reject null hypothesis and conclude that rho>0')
+        if (np.abs(DW-1) < err) or (np.abs(DW-3) < err):
+            print('Undetermined result.')
 
     def Multicollinearity_Check(self, model):
         """
@@ -255,7 +264,6 @@ class Regression_Analysis(object):
         else:
             print('Try use White-corrected standard errors.\nor GLS model.')
         print('=' * 80)
-        # TODO change the criteria with DW use the econometrics material MFIN 701
         self.Autocorrelation_Check(lm_model)
         self.Multicollinearity_Check(lm_model)
 
