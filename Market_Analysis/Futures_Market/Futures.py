@@ -33,7 +33,7 @@ class Futures_Contracts(object):
     CFFEX: China Financial Futures Exchange
     
     """
-    SHFE = ['AL','CU','ZN','RU','FU','AU','RB',
+    SHFE = ['AL','CU','ZN','RU','FU','AU','Data',
             'WR','PB','AG','BU','HC','NI','SN']
     DCE = ['P','L','M','Y','A','C','B','PVC','J',
            'JM','I','JD','FB','BB','PP','CS']
