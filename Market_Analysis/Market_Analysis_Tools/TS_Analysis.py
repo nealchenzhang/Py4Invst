@@ -66,6 +66,9 @@ import arch
 import statsmodels.api as sm
 from statsmodels.tsa.stattools import adfuller
 
+import os
+import datetime as dt
+
 class TS_Analysis(object):
     """
     This class is a process for analyzing a given time-series investment problem and justification.
