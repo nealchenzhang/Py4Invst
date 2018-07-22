@@ -57,66 +57,97 @@ Guidelines:
 
 print(__doc__)
 
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn
-import arch
-
-import statsmodels.api as sm
-from statsmodels.tsa.stattools import adfuller
-
 import os
 import datetime as dt
 
-class TS_Analysis(object):
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+import statsmodels.api as sm
+import statsmodels.formula.api as smf
+
+import arch
+from arch.unitroot import ADF
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+
+import seaborn
+from matplotlib import style
+style.use('ggplot')
+
+
+class TSAnalysis(object):
     """
     This class is a process for analyzing a given time-series investment problem and justification.
     
     """
     
     def __init__(self, df_data):
-        self.data = df_data.copy()
-        self.data['Time'] = pd.Series(list(range(1, self.data.index.size+1))).values
-        
-    def TS_Plot(self, y_axis):
-        self.data.plot(x='Time', y=y_axis)
-        
-    def linear_trend_model(self, Y):
-        print('Constant increase: Linear trend model')
-        self.data.plot(x='Time', y = Y)
+        """
 
-    def log_linear_trend_model(self, Y):
-        print('Constant rate: Log-Linear trend model')
-        log_Y = 'Log Price'+ Y
-        self.data[log_Y] = self.data[Y].apply(np.log)
-        self.data.plot(x='Time', y=log_Y)
+        :param df_data: normally time-series data
+        """
+        self.data = df_data.copy()
+        self.data.loc[:, 'Time'] = pd.Series(list(range(1, self.data.index.size+1))).values
         
-    def ols(self, X, Y):
-        X = sm.add_constant(self.data[X])
-        y = self.data[Y]
-        model = sm.OLS(y, X)
-        results = model.fit()
-        #print(results.summary())
-        return results
+    def plot_linear_trend(self, y):
+        seaborn.lmplot(x='Time', y=y, data=self.data)
+        ax = plt.gca()
+        ax.set_xlim(left=1)
+        self.data.plot(x='Time', y=y, ax=ax)
+        plt.title('Constant increase: Linear trend model')
+        plt.show()
+
+    def plot_log_linear_trend(self, y):
+        log_y = 'Log_' + y
+        self.data.loc[:, log_y] = self.data.loc[:, y].apply(np.log)
+        seaborn.lmplot(x='Time', y=log_y, data=self.data)
+        ax = plt.gca()
+        ax.set_xlim(left=1)
+        self.data.plot(x='Time', y=log_y, ax=ax)
+        plt.title('Constant rate: Log-Linear trend model')
+        plt.show()
+        
+    def ols(self, ls_x, y):
+        x = sm.add_constant(self.data.loc[:, ls_x])
+        y = self.data.loc[:, y]
+        model = sm.OLS(y, x).fit()
+        self.model = model
+        print(model.summary())
+        return model
             
-    def Durbin_Watson(self, resid):
-        DW = (resid - resid.shift(1)).apply(np.square).sum() /  \
-              resid.apply(np.square).sum()
+    def durbin_watson(self, resid=None):
+        if not resid:
+            resid = self.model.resid.copy()
+        else:
+            pass
+        DW = (resid - resid.shift(1)).apply(np.square).sum() / \
+             resid.apply(np.square).sum()
         print('Durbin_Watson: ', DW)
-        return DW
-    #
-    # def ADF_test(self):
-    #     adfuller(data, 1)
+
     
 if __name__ == '__main__':
     df_data = pd.read_excel('./Market_Analysis/Market_Analysis_Tools/cointegration.xls')
     df_data.set_index('Date', inplace=True)
-    # df_data = df_data.loc[:,'i1701']
 
-    ts = df_data.apply(np.log)
-    ex_a = TS_Analysis(ts)
-    ex_a.Durbin_Watson(ex_a.ols('i1701','rb1701').resid)
+    # Data Preparation
+    df_ts = df_data.drop(columns='rb1701')
+
+    # Establish TSAnalysis class
+    ex_a = TSAnalysis(df_ts)
+
+    # Plot Linear Trend Model
+    # ex_a.plot_linear_trend('i1701')
+    # Plot log_linear_trend model
+    # ex_a.plot_log_linear_trend('i1701')
+
+    # OLS for linear trend model
+    l_model = ex_a.ols(ls_x=['Time'], y='i1701')
+    ex_a.durbin_watson(resid=l_model.resid)
+    print('If DW shows that autocorrelation exists, then try log_linear_trend model.')
+
+    # OLS for log linear trend model
+    model
 
 
     
