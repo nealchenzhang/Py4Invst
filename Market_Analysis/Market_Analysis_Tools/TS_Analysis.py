@@ -66,6 +66,7 @@ import matplotlib.pyplot as plt
 
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
+from statsmodels.tsa.stattools import add_trend
 
 import arch
 from arch.unitroot import ADF
@@ -88,23 +89,23 @@ class TSAnalysis(object):
         :param df_data: normally time-series data
         """
         self.data = df_data.copy()
-        self.data.loc[:, 'Time'] = pd.Series(list(range(1, self.data.index.size+1))).values
-        
+        self.data = add_trend(self.data, trend='ct')
+
     def plot_linear_trend(self, y):
-        seaborn.lmplot(x='Time', y=y, data=self.data)
+        seaborn.lmplot(x='trend', y=y, data=self.data)
         ax = plt.gca()
         ax.set_xlim(left=1)
-        self.data.plot(x='Time', y=y, ax=ax)
+        self.data.plot(x='trend', y=y, ax=ax)
         plt.title('Constant increase: Linear trend model')
         plt.show()
 
     def plot_log_linear_trend(self, y):
         log_y = 'Log_' + y
         self.data.loc[:, log_y] = self.data.loc[:, y].apply(np.log)
-        seaborn.lmplot(x='Time', y=log_y, data=self.data)
+        seaborn.lmplot(x='trend', y=log_y, data=self.data)
         ax = plt.gca()
         ax.set_xlim(left=1)
-        self.data.plot(x='Time', y=log_y, ax=ax)
+        self.data.plot(x='trend', y=log_y, ax=ax)
         plt.title('Constant rate: Log-Linear trend model')
         plt.show()
         
@@ -116,18 +117,39 @@ class TSAnalysis(object):
         print(model.summary())
         return model
             
-    def durbin_watson(self, resid=None):
-        if not resid:
-            resid = self.model.resid.copy()
-        else:
-            pass
+    def durbin_watson(self, model):
+        resid = model.resid
         DW = (resid - resid.shift(1)).apply(np.square).sum() / \
              resid.apply(np.square).sum()
         print('Durbin_Watson: ', DW)
 
+    # def ADF_test(self, df_ts, lags=None):
+    #     if lags == 'None':
+    #         try:
+    #             adf = ADF(df_ts)
+    #         except:
+    #             adf = ADF(df_ts.dropna())
+    #     else:
+    #         try:
+    #             adf = ADF(df_ts)
+    #         except:
+    #             adf = ADF(df_ts.dropna())
+    #         adf.lags = lags
+    #     print(adf.summary().as_text())
+    #     return adf
+    #
+    # def plot_acf_pacf(self, df_ts, lags=31):
+    #     f = plt.figure(facecolor='white', figsize=(12, 8))
+    #     ax1 = f.add_subplot(211)
+    #     plot_acf(df_ts, lags=31, ax=ax1)
+    #     ax2 = f.add_subplot(212)
+    #     plot_pacf(df_ts, lags=31, ax=ax2)
+    #     plt.show()
+
     
 if __name__ == '__main__':
-    df_data = pd.read_excel('./Market_Analysis/Market_Analysis_Tools/cointegration.xls')
+    # df_data = pd.read_excel('./Market_Analysis/Market_Analysis_Tools/cointegration.xls')
+    df_data = pd.read_excel('cointegration.xls')
     df_data.set_index('Date', inplace=True)
 
     # Data Preparation
@@ -137,17 +159,21 @@ if __name__ == '__main__':
     ex_a = TSAnalysis(df_ts)
 
     # Plot Linear Trend Model
-    # ex_a.plot_linear_trend('i1701')
-    # Plot log_linear_trend model
-    # ex_a.plot_log_linear_trend('i1701')
-
+    ex_a.plot_linear_trend('i1701')
     # OLS for linear trend model
-    l_model = ex_a.ols(ls_x=['Time'], y='i1701')
-    ex_a.durbin_watson(resid=l_model.resid)
-    print('If DW shows that autocorrelation exists, then try log_linear_trend model.')
+    l_model = ex_a.ols(ls_x=['trend'], y='i1701')
+    ex_a.durbin_watson(model=l_model)
+    print('-'*50)
+    print('If DW(!=2) shows that autocorrelation exists, then try log_linear_trend model.')
 
+    # Plot log_linear_trend model
+    ex_a.plot_log_linear_trend('i1701')
     # OLS for log linear trend model
-    model
+    lg_model = ex_a.ols(ls_x=['trend'], y='Log_i1701')
+    ex_a.durbin_watson(model=lg_model)
+    print('-' * 50)
+    print('If DW(!=2) still shows that autocorrelation exists, then try autoregressive model.')
 
+    # Covariance stationary test (ADF test)
 
-    
+    # Autoregressive Model AR(p)
