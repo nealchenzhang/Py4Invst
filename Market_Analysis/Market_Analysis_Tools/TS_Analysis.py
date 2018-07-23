@@ -67,6 +67,9 @@ import matplotlib.pyplot as plt
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
 from statsmodels.tsa.stattools import add_trend
+from statsmodels.tsa.stattools import add_constant
+from statsmodels.tsa.stattools import arma_order_select_ic
+from statsmodels.tsa.arima_model import ARMA
 
 import arch
 from arch.unitroot import ADF
@@ -113,15 +116,53 @@ class TSAnalysis(object):
         x = sm.add_constant(self.data.loc[:, ls_x])
         y = self.data.loc[:, y]
         model = sm.OLS(y, x).fit()
-        self.model = model
         print(model.summary())
         return model
-            
-    def durbin_watson(self, model):
+
+    @staticmethod
+    def durbin_watson(model):
+        """
+
+        :param model: fitted model from statsmodels library
+        :return:
+        """
         resid = model.resid
         DW = (resid - resid.shift(1)).apply(np.square).sum() / \
              resid.apply(np.square).sum()
         print('Durbin_Watson: ', DW)
+
+    def add_lag(self, x, lag=1):
+        lagged_data = pd.DataFrame(columns=[str(x)])
+        lagged_data.loc[:, x] = self.data.loc[:, x].copy()
+        ls_lags = []
+        dic = {}
+        for i in range(1, lag+1):
+            dic['lag_' + str(i) + '_' + str(x)] = i
+
+        for i in dic.keys():
+            locals()[i] = dic[i]
+            ls_lags.append(i)
+
+        n = 1
+        for i in ls_lags:
+            lagged_data.loc[:, i] = self.data.loc[:, x].shift(n)
+            n += 1
+
+        lagged_data.dropna(inplace=True)
+        return lagged_data
+
+    def AR_p(self, x, p=1):
+        lagged_data = self.add_lag(x, lag=p).copy()
+        lagged_data = add_constant(lagged_data)
+        ls_x = []
+        for i in range(1, p+1):
+            ls_x.append('lag_'+str(i)+'_'+str(x))
+        ls_x.append('const')
+
+        model = sm.OLS(endog=lagged_data.loc[:, x], exog=lagged_data.loc[:, ls_x]).fit()
+        print(model.summary())
+        return model
+    # TODO: acf calculation and t-statistics
 
     # def ADF_test(self, df_ts, lags=None):
     #     if lags == 'None':
@@ -158,22 +199,29 @@ if __name__ == '__main__':
     # Establish TSAnalysis class
     ex_a = TSAnalysis(df_ts)
 
-    # Plot Linear Trend Model
-    ex_a.plot_linear_trend('i1701')
-    # OLS for linear trend model
-    l_model = ex_a.ols(ls_x=['trend'], y='i1701')
-    ex_a.durbin_watson(model=l_model)
-    print('-'*50)
-    print('If DW(!=2) shows that autocorrelation exists, then try log_linear_trend model.')
+    # # Plot Linear Trend Model
+    # ex_a.plot_linear_trend('i1701')
+    # # OLS for linear trend model
+    # l_model = ex_a.ols(ls_x=['trend'], y='i1701')
+    # ex_a.durbin_watson(model=l_model)
+    # print('-'*50)
+    # print('If DW(!=2) shows that autocorrelation exists, then try log_linear_trend model.')
+    #
+    # # Plot log_linear_trend model
+    # ex_a.plot_log_linear_trend('i1701')
+    # # OLS for log linear trend model
+    # lg_model = ex_a.ols(ls_x=['trend'], y='Log_i1701')
+    # ex_a.durbin_watson(model=lg_model)
+    # print('-' * 50)
+    # print('If DW(!=2) still shows that autocorrelation exists, then try autoregressive model.')
+    #
+    # # Covariance stationary test (ADF test)
+    #
+    # # Autoregressive Model AR(p)
+    # # Simple AR1 model
+    #
+    # # data = ex_a.add_lag(x='i1701', lag=4)
+    AR_2_model = ex_a.AR_p(x='i1701', p=2)
 
-    # Plot log_linear_trend model
-    ex_a.plot_log_linear_trend('i1701')
-    # OLS for log linear trend model
-    lg_model = ex_a.ols(ls_x=['trend'], y='Log_i1701')
-    ex_a.durbin_watson(model=lg_model)
-    print('-' * 50)
-    print('If DW(!=2) still shows that autocorrelation exists, then try autoregressive model.')
+    AR_2_model_ARMA = ARMA(ex_a.data.loc[:, 'i1701'], order=(2,0)).fit()
 
-    # Covariance stationary test (ADF test)
-
-    # Autoregressive Model AR(p)
