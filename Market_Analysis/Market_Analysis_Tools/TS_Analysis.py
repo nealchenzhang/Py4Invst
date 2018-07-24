@@ -58,6 +58,7 @@ Guidelines:
 print(__doc__)
 
 import os
+import re
 import datetime as dt
 
 import numpy as np
@@ -77,6 +78,7 @@ import arch
 from arch.unitroot import ADF
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 
+import prettytable as pt
 import seaborn
 from matplotlib import style
 style.use('ggplot')
@@ -95,7 +97,10 @@ class TSAnalysis(object):
         """
         self.data = df_data.copy()
         self.data = add_trend(self.data, trend='ct')
+        self.lag = None
         self.lagged_data = None
+        self.sp_lag = None
+        self.lagged_data_w_sp_lag = None
 
     def plot_linear_trend(self, y):
         seaborn.lmplot(x='trend', y=y, data=self.data)
@@ -152,7 +157,37 @@ class TSAnalysis(object):
             n += 1
 
         lagged_data.dropna(inplace=True)
+        self.lag = lag
+        self.lagged_data = lagged_data
         return lagged_data
+
+    def add_sp_lag(self, x, sp_lag=None):
+        """
+
+        :param x:
+        :param sp_lag: one int number
+        :return:
+        """
+        print('Current model is AR'+str(self.lag) + '.')
+        lagged_data_w_sp_lag = self.add_lag(x, lag=self.lag).copy()
+        ix_size = lagged_data_w_sp_lag.index.size
+
+        ls_sp_lags = []
+
+        dic = {}
+        dic['sp_lag_' + str(sp_lag) + '_' + str(x)] = sp_lag
+        for i in dic.keys():
+            locals()[i] = dic[i]
+            ls_sp_lags.append(i)
+
+        for i in ls_sp_lags:
+            lagged_data_w_sp_lag.loc[:, i] = self.data.loc[:, x].shift(dic[i]).iloc[-ix_size:]
+
+        lagged_data_w_sp_lag.dropna(inplace=True)
+
+        self.lagged_data_w_sp_lag = lagged_data_w_sp_lag
+        self.sp_lag = sp_lag
+        return lagged_data_w_sp_lag
 
     def AR_p(self, x, p=1, method='ols'):
         lagged_data = self.add_lag(x, lag=p).copy()
@@ -169,6 +204,7 @@ class TSAnalysis(object):
         # print(model.summary())
         return model
     # TODO: acf calculation and t-statistics
+
     @staticmethod
     def acf(model, maxlag=12):
         """
@@ -200,8 +236,26 @@ class TSAnalysis(object):
         dic = {}
         for i in ls_lags:
             dic[i] = ((df_res.loc[:, 'resid'] - mean) * (df_res.loc[:, i] - mean)).sum() /\
-                     (res.loc[:, 'resid'] - mean).apply(np.square).sum()
+                     (df_res.loc[:, 'resid'] - mean).apply(np.square).sum()
         return dic
+
+    def acf_table(self, model, maxlag=12):
+        dic = self.acf(model, maxlag)
+        T = model.resid.size
+        tb = pt.PrettyTable()
+        tb.set_style(pt.PLAIN_COLUMNS)
+        tb.align = 'c'
+        tb.field_names = ['Residual Lag', 'Autocorrelation', 't-Statistic']
+        for i in dic.keys():
+            tb.add_row([int(re.findall('\d+', i)[0]), dic[i], dic[i]/(1/np.sqrt(T))])
+        print(tb)
+
+    ##############################################################
+    # @staticmethod
+    # TODO less RMSE better predictive power
+    # def RMSE(model, out_of_sample):
+    #     RMSE = np.sqrt((real_y - predict_y).apply(np.square).sum())
+    ##############################################################
 
     # def ADF_test(self, df_ts, lags=None):
     #     if lags == 'None':
@@ -225,6 +279,9 @@ class TSAnalysis(object):
     #     ax2 = f.add_subplot(212)
     #     plot_pacf(df_ts, lags=31, ax=ax2)
     #     plt.show()
+
+    # def ARCH_test(self):
+
 
     
 if __name__ == '__main__':
@@ -259,40 +316,28 @@ if __name__ == '__main__':
     # # Autoregressive Model AR(p)
     # # Simple AR1 model
     AR_1_model = ex_a.AR_p(x='i1701', p=1)
-    print(AR_1_model.summary())
-    ex_a.acf(AR_1_model)
+    df_sp = ex_a.add_sp_lag(x='i1701', sp_lag=4)
+    print(df_sp)
+    # print(AR_1_model.summary())
+    # ex_a.acf(AR_1_model)
+    # ex_a.acf_table(AR_1_model, maxlag=12)
 
 
-    res = pd.DataFrame(columns=['resid'])
-    res.loc[:, 'resid'] = AR_1_model.resid
-    res.loc[:, 'resid_lag1'] = AR_1_model.resid.shift(1)
-    res.loc[:, 'resid_lag2'] = AR_1_model.resid.shift(2)
-    res.loc[:, 'resid_lag3'] = AR_1_model.resid.shift(3)
-
-    res.dropna(inplace=True)
-    res.corr()
-    # np.corrcoef(res.loc[:, 'resid_lag1'], res.loc[:, 'resid_lag2'])
-    mean = res.loc[:, 'resid'].mean()
-    ((res.loc[:, 'resid'] - mean) * (res.loc[:, 'resid_lag1'] - mean)).sum() / (res.loc[:, 'resid'] - mean).apply(np.square).sum()
-    # plot_pacf(ex_a.data.loc[:, 'i1701'], lags=12)
-    a = st.acf(res.loc[:, 'resid'])
-    plot_acf(res.loc[:, 'resid'])
-
-    ############################################
-    dta = sm.datasets.sunspots.load_pandas().data
-    dta.index = pd.Index(sm.tsa.datetools.dates_from_range('1700', '2008'))
-    del dta["YEAR"]
-    arma_mod20 = sm.tsa.ARMA(dta, (2, 0)).fit(disp=False)
-    print(arma_mod20.params)
-    arma = TSAnalysis(dta)
-    ar = arma.AR_p(x='SUNACTIVITY', p=2)
-    ar.summary()
-    arma_mod20.summary()
-
-    ############################################
-    df_ts_cap = pd.DataFrame(columns=['Capacity'])
-    da = np.array([82.4,81.5,80.8,80.5,80.2,80.2,80.5,80.9,81.3,81.9,81.7,80.3,77.9,76.4,76.4])
-    df_ts_cap.loc[:, 'Capacity'] = pd.Series(da)
-    df_diff = df_ts_cap.diff(1).dropna()
-    cf_test = TSAnalysis(df_diff)
-    mod = cf_test.AR_p(x='Capacity',p=1)
+    # ############################################
+    # dta = sm.datasets.sunspots.load_pandas().data
+    # dta.index = pd.Index(sm.tsa.datetools.dates_from_range('1700', '2008'))
+    # del dta["YEAR"]
+    # arma_mod20 = sm.tsa.ARMA(dta, (2, 0)).fit(disp=False)
+    # print(arma_mod20.params)
+    # arma = TSAnalysis(dta)
+    # ar = arma.AR_p(x='SUNACTIVITY', p=2)
+    # ar.summary()
+    # arma_mod20.summary()
+    #
+    # ############################################
+    # df_ts_cap = pd.DataFrame(columns=['Capacity'])
+    # da = np.array([82.4,81.5,80.8,80.5,80.2,80.2,80.5,80.9,81.3,81.9,81.7,80.3,77.9,76.4,76.4])
+    # df_ts_cap.loc[:, 'Capacity'] = pd.Series(da)
+    # df_diff = df_ts_cap.diff(1).dropna()
+    # cf_test = TSAnalysis(df_diff)
+    # mod = cf_test.AR_p(x='Capacity',p=1)
