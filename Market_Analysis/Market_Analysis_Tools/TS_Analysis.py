@@ -66,10 +66,12 @@ import matplotlib.pyplot as plt
 
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
+import statsmodels.tsa.stattools as st
 from statsmodels.tsa.stattools import add_trend
 from statsmodels.tsa.stattools import add_constant
 from statsmodels.tsa.stattools import arma_order_select_ic
 from statsmodels.tsa.arima_model import ARMA
+from statsmodels.tsa.ar_model import AR
 
 import arch
 from arch.unitroot import ADF
@@ -93,6 +95,7 @@ class TSAnalysis(object):
         """
         self.data = df_data.copy()
         self.data = add_trend(self.data, trend='ct')
+        self.lagged_data = None
 
     def plot_linear_trend(self, y):
         seaborn.lmplot(x='trend', y=y, data=self.data)
@@ -151,18 +154,54 @@ class TSAnalysis(object):
         lagged_data.dropna(inplace=True)
         return lagged_data
 
-    def AR_p(self, x, p=1):
+    def AR_p(self, x, p=1, method='ols'):
         lagged_data = self.add_lag(x, lag=p).copy()
         lagged_data = add_constant(lagged_data)
         ls_x = []
         for i in range(1, p+1):
             ls_x.append('lag_'+str(i)+'_'+str(x))
         ls_x.append('const')
-
-        model = sm.OLS(endog=lagged_data.loc[:, x], exog=lagged_data.loc[:, ls_x]).fit()
-        print(model.summary())
+        self.lagged_data = lagged_data
+        if method == 'ols':
+            model = sm.OLS(endog=lagged_data.loc[:, x], exog=lagged_data.loc[:, ls_x]).fit()
+        elif method == 'stats': # TODO check source code and algorithm
+            model = ARMA(self.data.loc[:, x], order=(p, 0)).fit()
+        # print(model.summary())
         return model
     # TODO: acf calculation and t-statistics
+    @staticmethod
+    def acf(model, maxlag=12):
+        """
+
+        :param model: fitted model from
+        :param maxlag:
+        :return:
+        """
+        df_res = pd.DataFrame(columns=['resid'])
+        df_res.loc[:, 'resid'] = model.resid
+
+        ls_lags = []
+        dic = {}
+        for i in range(1, maxlag + 1):
+            dic['resid_lag' + str(i)] = i
+
+        for i in dic.keys():
+            locals()[i] = dic[i]
+            ls_lags.append(i)
+
+        n = 1
+        for i in ls_lags:
+            df_res.loc[:, i] = df_res.loc[:, 'resid'].shift(n)
+            n += 1
+
+        df_res.dropna(inplace=True)
+
+        mean = df_res.loc[:, 'resid'].mean()
+        dic = {}
+        for i in ls_lags:
+            dic[i] = ((df_res.loc[:, 'resid'] - mean) * (df_res.loc[:, i] - mean)).sum() /\
+                     (res.loc[:, 'resid'] - mean).apply(np.square).sum()
+        return dic
 
     # def ADF_test(self, df_ts, lags=None):
     #     if lags == 'None':
@@ -219,9 +258,41 @@ if __name__ == '__main__':
     #
     # # Autoregressive Model AR(p)
     # # Simple AR1 model
-    #
-    # # data = ex_a.add_lag(x='i1701', lag=4)
-    AR_2_model = ex_a.AR_p(x='i1701', p=2)
+    AR_1_model = ex_a.AR_p(x='i1701', p=1)
+    print(AR_1_model.summary())
+    ex_a.acf(AR_1_model)
 
-    AR_2_model_ARMA = ARMA(ex_a.data.loc[:, 'i1701'], order=(2,0)).fit()
 
+    res = pd.DataFrame(columns=['resid'])
+    res.loc[:, 'resid'] = AR_1_model.resid
+    res.loc[:, 'resid_lag1'] = AR_1_model.resid.shift(1)
+    res.loc[:, 'resid_lag2'] = AR_1_model.resid.shift(2)
+    res.loc[:, 'resid_lag3'] = AR_1_model.resid.shift(3)
+
+    res.dropna(inplace=True)
+    res.corr()
+    # np.corrcoef(res.loc[:, 'resid_lag1'], res.loc[:, 'resid_lag2'])
+    mean = res.loc[:, 'resid'].mean()
+    ((res.loc[:, 'resid'] - mean) * (res.loc[:, 'resid_lag1'] - mean)).sum() / (res.loc[:, 'resid'] - mean).apply(np.square).sum()
+    # plot_pacf(ex_a.data.loc[:, 'i1701'], lags=12)
+    a = st.acf(res.loc[:, 'resid'])
+    plot_acf(res.loc[:, 'resid'])
+
+    ############################################
+    dta = sm.datasets.sunspots.load_pandas().data
+    dta.index = pd.Index(sm.tsa.datetools.dates_from_range('1700', '2008'))
+    del dta["YEAR"]
+    arma_mod20 = sm.tsa.ARMA(dta, (2, 0)).fit(disp=False)
+    print(arma_mod20.params)
+    arma = TSAnalysis(dta)
+    ar = arma.AR_p(x='SUNACTIVITY', p=2)
+    ar.summary()
+    arma_mod20.summary()
+
+    ############################################
+    df_ts_cap = pd.DataFrame(columns=['Capacity'])
+    da = np.array([82.4,81.5,80.8,80.5,80.2,80.2,80.5,80.9,81.3,81.9,81.7,80.3,77.9,76.4,76.4])
+    df_ts_cap.loc[:, 'Capacity'] = pd.Series(da)
+    df_diff = df_ts_cap.diff(1).dropna()
+    cf_test = TSAnalysis(df_diff)
+    mod = cf_test.AR_p(x='Capacity',p=1)
