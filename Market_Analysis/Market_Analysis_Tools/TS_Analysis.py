@@ -71,6 +71,7 @@ import statsmodels.tsa.stattools as st
 from statsmodels.tsa.stattools import add_trend
 from statsmodels.tsa.stattools import add_constant
 from statsmodels.tsa.stattools import arma_order_select_ic
+from statsmodels.stats.diagnostic import acorr_ljungbox
 from statsmodels.tsa.arima_model import ARMA
 from statsmodels.tsa.ar_model import AR
 
@@ -274,13 +275,31 @@ class TS_Analysis(object):
         print(adf.summary().as_text())
         return adf
 
-    # def plot_acf_pacf(self, df_ts, lags=31):
-    #     f = plt.figure(facecolor='white', figsize=(12, 8))
-    #     ax1 = f.add_subplot(211)
-    #     plot_acf(df_ts, lags=31, ax=ax1)
-    #     ax2 = f.add_subplot(212)
-    #     plot_pacf(df_ts, lags=31, ax=ax2)
-    #     plt.show()
+    @staticmethod
+    def diff_selection(df, max_diff=12):
+        dict_p = {}
+        for i in range(1, max_diff+1):
+            tmp = df.copy()
+            tmp.loc[:, 'diff'] = tmp.loc[:, tmp.columns[0]].diff(i)
+            tmp.dropna(inplace=True)
+            pvalue = ADF(tmp.loc[:, 'diff']).pvalue
+            dict_p[i] = pvalue
+            df_p = pd.DataFrame.from_dict(dict_p, orient="index", columns=['p_value'])
+        n = 0
+        while n < len(df_p):
+            if df_p.loc[:, 'p_value'].iloc[n] < 0.01:
+                best_diff = i
+                break
+            n += 1
+        return best_diff
+
+    def plot_acf_pacf(self, df_ts, lags=31):
+        f = plt.figure(facecolor='white', figsize=(12, 8))
+        ax1 = f.add_subplot(211)
+        plot_acf(df_ts, lags=31, ax=ax1)
+        ax2 = f.add_subplot(212)
+        plot_pacf(df_ts, lags=31, ax=ax2)
+        plt.show()
 
     # def ARCH_test(self):
 
@@ -359,6 +378,10 @@ if __name__ == '__main__':
     fig = acf[1:].plot(kind='bar', title='Residual Autocorrelations')
     # Pass the unit root test
 
+    # TODO: Ljung-Box test
+    # Check if acorr_ljungbox(ts, lags=1) source code
+
+
     # If AR model is needed and df_data is changed
     TS_new = TS_Analysis(df_data=df_data_new)
 
@@ -369,6 +392,26 @@ if __name__ == '__main__':
     TS.acf(AR_1_model)
     TS.acf_table(AR_1_model, maxlag=12)
 
+    # ARMA model
+    best_order = st.arma_order_select_ic(df_data, max_ar=5, max_ma=5, ic=['aic', 'bic', 'hqic'])
+    arma_model = ARMA(df_data, order=best_order.bic_min_order).fit(disp=-1, method='css')
+    print(arma_model.summary())
     ####################################################################
     #              PART III  Model Selection and Prediction            #
     ####################################################################
+
+    # this is the nsteps ahead predictor function
+    from statsmodels.tsa.arima_model import _arma_predict_out_of_sample
+
+    res = sm.tsa.ARMA(y, (3, 2)).fit(trend="nc")
+    res = arma_model
+    # get what you need for predicting one-step ahead
+    params = res.params
+    residuals = res.resid
+    p = res.k_ar
+    q = res.k_ma
+    k_exog = res.k_exog
+    k_trend = res.k_trend
+    steps = 1
+
+    _arma_predict_out_of_sample(params, steps, residuals, p, q, k_trend, k_exog, endog=df_data, exog=None, start=len(df_data))
