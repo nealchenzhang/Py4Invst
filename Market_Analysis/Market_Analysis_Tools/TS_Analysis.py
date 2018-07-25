@@ -84,7 +84,7 @@ from matplotlib import style
 style.use('ggplot')
 
 
-class TSAnalysis(object):
+class TS_Analysis(object):
     """
     This class is a process for analyzing a given time-series investment problem and justification.
     
@@ -203,14 +203,13 @@ class TSAnalysis(object):
             model = ARMA(self.data.loc[:, x], order=(p, 0)).fit()
         # print(model.summary())
         return model
-    # TODO: acf calculation and t-statistics
 
     @staticmethod
-    def acf(model, maxlag=12):
+    def acf(model, max_lag=12):
         """
 
         :param model: fitted model from
-        :param maxlag:
+        :param max_lag:
         :return:
         """
         df_res = pd.DataFrame(columns=['resid'])
@@ -218,7 +217,7 @@ class TSAnalysis(object):
 
         ls_lags = []
         dic = {}
-        for i in range(1, maxlag + 1):
+        for i in range(1, max_lag + 1):
             dic['resid_lag' + str(i)] = i
 
         for i in dic.keys():
@@ -250,28 +249,31 @@ class TSAnalysis(object):
             tb.add_row([int(re.findall('\d+', i)[0]), dic[i], dic[i]/(1/np.sqrt(T))])
         print(tb)
 
-    ##############################################################
-    # @staticmethod
-    # TODO less RMSE better predictive power
-    # def RMSE(model, out_of_sample):
-    #     RMSE = np.sqrt((real_y - predict_y).apply(np.square).sum())
-    ##############################################################
+    @staticmethod
+    def ADF_test(df_ts, lags=None):
+        """
+        ADF from arch
+        formula:
+        xt-xt-1 ~ b0 + (b1-1)*xt-1 + e
+        test if b1-1 == 0 ~ DF statistics
+        :param df_ts:
+        :param lags:
+        :return:
+        """
+        if lags == 'None':
+            try:
+                adf = ADF(df_ts)
+            except:
+                adf = ADF(df_ts.dropna())
+        else:
+            try:
+                adf = ADF(df_ts)
+            except:
+                adf = ADF(df_ts.dropna())
+            adf.lags = lags
+        print(adf.summary().as_text())
+        return adf
 
-    # def ADF_test(self, df_ts, lags=None):
-    #     if lags == 'None':
-    #         try:
-    #             adf = ADF(df_ts)
-    #         except:
-    #             adf = ADF(df_ts.dropna())
-    #     else:
-    #         try:
-    #             adf = ADF(df_ts)
-    #         except:
-    #             adf = ADF(df_ts.dropna())
-    #         adf.lags = lags
-    #     print(adf.summary().as_text())
-    #     return adf
-    #
     # def plot_acf_pacf(self, df_ts, lags=31):
     #     f = plt.figure(facecolor='white', figsize=(12, 8))
     #     ax1 = f.add_subplot(211)
@@ -282,62 +284,91 @@ class TSAnalysis(object):
 
     # def ARCH_test(self):
 
+    ##############################################################
+    # @staticmethod
+    # TODO less RMSE better predictive power
+    # def RMSE(model, out_of_sample):
+    #     RMSE = np.sqrt((real_y - predict_y).apply(np.square).sum())
+    ##############################################################
 
-    
+
 if __name__ == '__main__':
-    # df_data = pd.read_excel('./Market_Analysis/Market_Analysis_Tools/cointegration.xls')
-    df_data = pd.read_excel('cointegration.xls')
+    ####################################################################
+    #                      PART I Data Preparation                     #
+    ####################################################################
+    # Read data file
+    df_data = pd.read_excel('./Market_Analysis/Market_Analysis_Tools/cointegration.xls')
+    # df_data = pd.read_excel('cointegration.xls')
     df_data.set_index('Date', inplace=True)
+    df_data = df_data.drop(columns='rb1701')
 
-    # Data Preparation
-    df_ts = df_data.drop(columns='rb1701')
+    # Remove outliers and missing data
+    threshold = 300  # Depends on the data characteristics
+    df_data.loc[:, 'rolling_median'] = df_data.loc[:, 'i1701'].\
+        rolling(window=3, center=True).median().fillna(method='bfill').fillna(method='ffill')
+    difference = np.abs(df_data.loc[:, 'i1701'] - df_data.loc[:, 'i1701'])
+    outlier_idx = difference > threshold
 
-    # Establish TSAnalysis class
-    ex_a = TSAnalysis(df_ts)
+    df_data.loc[:, 'i1701'] = df_data.loc[:, 'i1701'].fillna(method='bfill').fillna(method='ffill')
 
-    # # Plot Linear Trend Model
-    # ex_a.plot_linear_trend('i1701')
-    # # OLS for linear trend model
-    # l_model = ex_a.ols(ls_x=['trend'], y='i1701')
-    # ex_a.durbin_watson(model=l_model)
-    # print('-'*50)
-    # print('If DW(!=2) shows that autocorrelation exists, then try log_linear_trend model.')
-    #
-    # # Plot log_linear_trend model
-    # ex_a.plot_log_linear_trend('i1701')
-    # # OLS for log linear trend model
-    # lg_model = ex_a.ols(ls_x=['trend'], y='Log_i1701')
-    # ex_a.durbin_watson(model=lg_model)
-    # print('-' * 50)
-    # print('If DW(!=2) still shows that autocorrelation exists, then try autoregressive model.')
-    #
-    # # Covariance stationary test (ADF test)
-    #
-    # # Autoregressive Model AR(p)
-    # # Simple AR1 model
-    AR_1_model = ex_a.AR_p(x='i1701', p=1)
-    df_sp = ex_a.add_sp_lag(x='i1701', sp_lag=4)
-    print(df_sp)
-    # print(AR_1_model.summary())
-    # ex_a.acf(AR_1_model)
-    # ex_a.acf_table(AR_1_model, maxlag=12)
+    ####################################################################
+    #                PART II  Establish Time Series Model              #
+    ####################################################################
+    # Establish TS_Analysis class
+    TS = TS_Analysis(df_data=df_data)
 
+    # Plot Linear Trend Model
+    TS.plot_linear_trend('i1701')
+    # OLS for linear trend model
+    l_model = TS.ols(ls_x=['trend'], y='i1701')
+    TS.durbin_watson(model=l_model)
+    print('-'*50)
+    print('If DW(!=2) shows that autocorrelation exists, then try log_linear_trend model.')
 
-    # ############################################
-    # dta = sm.datasets.sunspots.load_pandas().data
-    # dta.index = pd.Index(sm.tsa.datetools.dates_from_range('1700', '2008'))
-    # del dta["YEAR"]
-    # arma_mod20 = sm.tsa.ARMA(dta, (2, 0)).fit(disp=False)
-    # print(arma_mod20.params)
-    # arma = TSAnalysis(dta)
-    # ar = arma.AR_p(x='SUNACTIVITY', p=2)
-    # ar.summary()
-    # arma_mod20.summary()
-    #
-    # ############################################
-    # df_ts_cap = pd.DataFrame(columns=['Capacity'])
-    # da = np.array([82.4,81.5,80.8,80.5,80.2,80.2,80.5,80.9,81.3,81.9,81.7,80.3,77.9,76.4,76.4])
-    # df_ts_cap.loc[:, 'Capacity'] = pd.Series(da)
-    # df_diff = df_ts_cap.diff(1).dropna()
-    # cf_test = TSAnalysis(df_diff)
-    # mod = cf_test.AR_p(x='Capacity',p=1)
+    # Plot log_linear_trend model
+    TS.plot_log_linear_trend('i1701')
+    # OLS for log linear trend model
+    lg_model = TS.ols(ls_x=['trend'], y='Log_i1701')
+    TS.durbin_watson(model=lg_model)
+    print('-' * 50)
+    print('If DW(!=2) still shows that autocorrelation exists, then try autoregressive model.')
+
+    # Covariance stationary test (ADF test)
+    # Unit root test
+    adf = TS.ADF_test(df_data)
+    reg_res = adf.regression
+    acf = pd.DataFrame(sm.tsa.stattools.acf(reg_res.resid), columns=['ACF'])
+    fig = acf[1:].plot(kind='bar', title='Residual Autocorrelations')
+
+    # If not stationary
+    # Method 1: log
+    df_log = pd.DataFrame(columns=['log_diff_i1701'])
+    df_log = df_data.loc[:, 'i1701'].apply(np.log).dropna()
+
+    # Method 2: diff
+    # adf = ex_a.ADF_test(df_ts, lags=adf.lags)
+    # reg_res = adf.regression
+    acf = pd.DataFrame(sm.tsa.stattools.acf(reg_res.resid), columns=['ACF'])
+    fig = acf[1:].plot(kind='bar', title='Residual Autocorrelations')
+
+    # We try to use log-diff data
+    df_data_new = df_data.loc[:, 'i1701'].apply(np.log).diff(1).dropna()
+    adf = TS.ADF_test(df_data_new)
+    reg_res = adf.regression
+    acf = pd.DataFrame(sm.tsa.stattools.acf(reg_res.resid), columns=['ACF'])
+    fig = acf[1:].plot(kind='bar', title='Residual Autocorrelations')
+    # Pass the unit root test
+
+    # If AR model is needed and df_data is changed
+    TS_new = TS_Analysis(df_data=df_data_new)
+
+    # Autoregressive Model AR(p)
+    AR_1_model = TS.AR_p(x='i1701', p=1)
+    df_sp = TS.add_sp_lag(x='i1701', sp_lag=4)
+    print(AR_1_model.summary())
+    TS.acf(AR_1_model)
+    TS.acf_table(AR_1_model, maxlag=12)
+
+    ####################################################################
+    #              PART III  Model Selection and Prediction            #
+    ####################################################################
