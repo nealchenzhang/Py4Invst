@@ -172,6 +172,10 @@ class CommodityAnalysis(object):
 
         return ls_last_trading_date
 
+    @staticmethod
+    def plot_curves():
+
+
     def plot_futures_curve(self, df_raw):
         asset = self.str_asset
         ls_str_month = self.ls_str_month
@@ -181,6 +185,9 @@ class CommodityAnalysis(object):
 
         df_raw.loc[:, 'Date'] = self.ls_trading_date
         df_raw.loc[:, 'Date'] = df_raw.loc[:, 'Date'].apply(pd.to_datetime)
+
+        fig, ax1 = plt.subplots(figsize=(12, 8))
+        ax1.plot(np.arange(1, 366), 2*np.arange(1, 365))
 
         for i in df_raw.loc[:, 'Date']:
             time_span = np.array(ls_dates) - i
@@ -198,8 +205,8 @@ if __name__ == '__main__':
     test = CommodityAnalysis('RB', ['01', '05', '10'])
 
     # Raw Data with price, volume, and positions
-    # df_RB = pd.read_csv('/home/nealzc1991/PycharmProjects/Py4Invst/Fundamental/RB.csv')
-    df_RB = pd.read_csv('/home/nealzc/PycharmProjects/Py4Invst/Fundamental/RB.csv')
+    df_RB = pd.read_csv('/home/nealzc1991/PycharmProjects/Py4Invst/Fundamental/RB.csv')
+    # df_RB = pd.read_csv('/home/nealzc/PycharmProjects/Py4Invst/Fundamental/RB.csv')
     df_RB.set_index('Date', inplace=True)
 
     # Construct most and second most active contract data series
@@ -214,3 +221,21 @@ if __name__ == '__main__':
     ls_dates = test.last_trading_date()
     # Plot futures curve
     test.plot_futures_curve(df_raw=df_RB)
+
+
+    ###
+    asset = test.str_asset
+    ls_str_month = test.ls_str_month
+    df_raw = df_RB.copy()
+    ls_dates = test.last_trading_date()
+    ls_dates.sort()
+
+    df_raw.loc[:, 'Date'] = test.ls_trading_date
+    df_raw.loc[:, 'Date'] = df_raw.loc[:, 'Date'].apply(pd.to_datetime)
+
+    na_time = np.array(ls_dates)
+    tex = df_raw.iloc[:200]['Date']
+    for i in tex:
+        x = (na_time - tex[0])
+        print(x)
+    [i.days for i in x]
