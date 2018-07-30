@@ -5,12 +5,20 @@ import datetime as dt
 import numpy as np
 import pandas as pd
 
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+import matplotlib.ticker as ticker
+
+from matplotlib import style
+style.use('ggplot')
+
 from Market_Analysis.Market_Analysis_Tools.Regression_Analysis import Regression_Analysis as RA
 
 
-class CommoditySpread(object):
+class CommodityAnalysis(object):
 
-    def __init__(self, str_asset, ls_str_month):
+    def __init__(self, str_asset, ls_str_month, int_last_trading_day=15):
         """
 
         :param str_asset: using UpperCase for underlying asset
@@ -19,8 +27,11 @@ class CommoditySpread(object):
         self.str_asset = str_asset
         self.ls_str_month = ls_str_month
         self.ls_int_rate = np.diff([int(i) for i in ls_str_month]).tolist()
+        self.int_last_trading_day = int_last_trading_day
+        self.ls_trading_date = None
         self.df_cc0 = None
         self.df_cc1 = None
+        self.df_next_c = None
 
     @staticmethod
     def _second_mostly_traded(a,b,c):
@@ -38,6 +49,7 @@ class CommoditySpread(object):
         :return: dictionary of date of mostly traded contract
         """
         asset = self.str_asset
+        df_raw = df_raw.copy()
         cols = [str(asset) + i for i in self.ls_str_month]
         po_cols = [i+'_po' for i in cols]
         n = len(po_cols)
@@ -67,6 +79,7 @@ class CommoditySpread(object):
         :return: dictionary of date of second mostly traded contract
         """
         asset = self.str_asset
+        df_raw = df_raw.copy()
         cols = [str(asset) + i for i in self.ls_str_month]
         po_cols = [i+'_po' for i in cols]
         n = len(po_cols)
@@ -79,7 +92,7 @@ class CommoditySpread(object):
         elif n == 2:
             df_raw['second_traded_po'] = df_raw.apply(
                 lambda x: self._second_mostly_traded(
-                    x[po_cols[0]], x[po_cols[1]]
+                    x[po_cols[0]], x[po_cols[1]], c=0 # c is used to keep the func work
                 ), axis=1
             )
         dic = {}
@@ -93,10 +106,11 @@ class CommoditySpread(object):
     def active_contract(self, df_raw):
         """
 
-        :param df_raw: raw data of
-        :return:
+        :param df_raw: raw data
+        :return: DataFrame of most active contract
         """
         asset = self.str_asset
+        df_raw = df_raw.copy()
         df_cc0 = pd.DataFrame(columns=[asset+'cc0_p', asset+'cc0_v', asset+'cc0_po'])
         dic_active_contract = self._mostly_traded_contract(df_raw=df_raw)
         tmp = pd.DataFrame(columns=[asset+'cc0_p', asset+'cc0_v', asset+'cc0_po'])
@@ -108,15 +122,17 @@ class CommoditySpread(object):
             tmp = pd.DataFrame(columns=[asset + 'cc0_p', asset + 'cc0_v', asset + 'cc0_po'])
         df_cc0 = df_cc0.sort_index(ascending=True)
         self.df_cc0 = df_cc0
+        self.ls_trading_date = df_cc0.index.tolist()
         return df_cc0
 
     def second_active_contract(self, df_raw):
         """
 
-        :param df_raw: raw data of
-        :return:
+        :param df_raw: raw data
+        :return: DataFrame of second active contract
         """
         asset = self.str_asset
+        df_raw = df_raw.copy()
         df_cc1 = pd.DataFrame(columns=[asset+'cc0_p', asset+'cc0_v', asset+'cc0_po'])
         dic_second_active_contract = self._second_traded_contract(df_raw=df_raw)
         tmp = pd.DataFrame(columns=[asset+'cc0_p', asset+'cc0_v', asset+'cc0_po'])
@@ -130,21 +146,47 @@ class CommoditySpread(object):
         self.df_cc1 = df_cc1
         return df_cc1
 
-    @staticmethod
-    def last_trading_date(ls_str_month, str_date):
-        dt_trading_date = dt.datetime.strptime(str_date, '%Y-%m-%d')
-        if dt_trading_date.month in [int(i) for i in ls_str_month]:
-            if dt_trading_date.day == 15:
-                return str_date
-            # TODO how to postpone last trading date for delivery month
-            elif dt_trading_date.weekday()
-            return None
+    def last_trading_date(self):
+        """
+
+        :return: list of last trading date for each active contract
+        """
+        ls_str_month = self.ls_str_month
+        ls_trading_date = [dt.datetime.strptime(i, '%Y-%m-%d') for i in self.ls_trading_date]
+
+        # Last trading date
+        ls_years = list(set([i.year for i in ls_trading_date]))
+        ls_month = [int(i) for i in ls_str_month]
+        int_day = self.int_last_trading_day
+
+        ls_last_trading_date = []
+        for y in ls_years:
+            for m in ls_month:
+                dt_date = dt.datetime(year=y, month=m, day=int_day)
+                if dt_date.strftime('%Y-%m-%d') in self.ls_trading_date:
+                    ls_last_trading_date.append(dt_date)
+                elif (dt_date+dt.timedelta(days=1)).strftime('%Y-%m-%d') in self.ls_trading_date:
+                    ls_last_trading_date.append(dt_date+dt.timedelta(days=1))
+                elif (dt_date+dt.timedelta(days=2)).strftime('%Y-%m-%d') in self.ls_trading_date:
+                    ls_last_trading_date.append(dt_date + dt.timedelta(days=1))
+
+        return ls_last_trading_date
+
+    def plot_futures_curve(self, df_raw):
+        asset = self.str_asset
+        ls_str_month = self.ls_str_month
+        df_raw = df_raw.copy()
+        ls_dates = self.last_trading_date()
+        ls_dates.sort()
+
+        df_raw.loc[:, 'Date'] = self.ls_trading_date
+        df_raw.loc[:, 'Date'] = df_raw.loc[:, 'Date'].apply(pd.to_datetime)
+
+        for i in df_raw.loc[:, 'Date']:
+            time_span = np.array(ls_dates) - i
+            # TODO use the price with time_span > 0
 
 
-    #
-    # def plot_futures_curve(self, df_raw):
-    #     asset = self.str_asset
-    #     ls_str_month = self.ls_str_month
 
 
 
@@ -153,11 +195,11 @@ if __name__ == '__main__':
     #                PART I  Commodity Data Preparation                #
     ####################################################################
     # Establish class object for CommoditySpread
-    test = CommoditySpread('RB', ['01', '05', '10'])
+    test = CommodityAnalysis('RB', ['01', '05', '10'])
 
-    # Raw Data with price, volume, and posi
-    df_RB = pd.read_csv('/home/nealzc1991/PycharmProjects/Py4Invst/Fundamental/RB.csv')
-    # df_RB = pd.read_csv('/home/nealzc/PycharmProjects/Py4Invst/Fundamental/RB.csv')
+    # Raw Data with price, volume, and positions
+    # df_RB = pd.read_csv('/home/nealzc1991/PycharmProjects/Py4Invst/Fundamental/RB.csv')
+    df_RB = pd.read_csv('/home/nealzc/PycharmProjects/Py4Invst/Fundamental/RB.csv')
     df_RB.set_index('Date', inplace=True)
 
     # Construct most and second most active contract data series
@@ -168,4 +210,7 @@ if __name__ == '__main__':
     # Further adjustment needed for df_CC1
     #
 
-    df_test = df_RB.loc['2017-01-01':'2018-01-01',:]
+    # Dates for last trading dates
+    ls_dates = test.last_trading_date()
+    # Plot futures curve
+    test.plot_futures_curve(df_raw=df_RB)
