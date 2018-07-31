@@ -40,7 +40,7 @@ pl.mpl.rcParams['axes.unicode_minus'] = False
 import pandas as pd
 import datetime as dt
 
-from Data import *
+from Data.Stocks_Data import MongoDB
 
 class MyMplCanvas(FigureCanvas):
 

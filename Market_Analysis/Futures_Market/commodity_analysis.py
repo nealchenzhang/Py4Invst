@@ -5,10 +5,10 @@ import datetime as dt
 import numpy as np
 import pandas as pd
 
-import matplotlib as mpl
+import matplotlib
 import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-import matplotlib.ticker as ticker
+import matplotlib.font_manager as fm
+from mpl_toolkits.mplot3d import Axes3D
 
 from matplotlib import style
 style.use('ggplot')
@@ -172,13 +172,8 @@ class CommodityAnalysis(object):
 
         return ls_last_trading_date
 
-    @staticmethod
-    def plot_curves():
-
-
-    def plot_futures_curve(self, df_raw):
+    def plot_futures_curve(self, df_raw, year=2010):
         asset = self.str_asset
-        ls_str_month = self.ls_str_month
         df_raw = df_raw.copy()
         ls_dates = self.last_trading_date()
         ls_dates.sort()
@@ -186,15 +181,35 @@ class CommodityAnalysis(object):
         df_raw.loc[:, 'Date'] = self.ls_trading_date
         df_raw.loc[:, 'Date'] = df_raw.loc[:, 'Date'].apply(pd.to_datetime)
 
+        df_tmp = df_raw.where(
+            df_raw.loc[:, 'Date'].apply(lambda i: i.year == year)
+        ).dropna()
+
         fig, ax1 = plt.subplots(figsize=(12, 8))
-        ax1.plot(np.arange(1, 366), 2*np.arange(1, 365))
+        plt.ion()
 
-        for i in df_raw.loc[:, 'Date']:
-            time_span = np.array(ls_dates) - i
-            # TODO use the price with time_span > 0
+        for i in df_tmp.loc[:, 'Date']:
+            time_to_maturity = np.array(ls_dates) - i
+            ix = np.where(
+                (time_to_maturity < dt.timedelta(days=366)) &
+                (dt.timedelta(days=0) < time_to_maturity)
+            )
+            t = [i.days for i in time_to_maturity[ix]]
+            y_month = [i.month for i in np.array(ls_dates)[ix]]
+            str_month = [asset+('0'+str(i))[-2:]+'_p' for i in y_month]
 
+            # Plotting
+            plt.cla()
+            ax1.set_xlim(0, 366)
+            ax1.set_xlabel('Time to maturity')
+            ax1.set_ylabel('Prices')
+            plt.title('Futures curve for year {}\nand date {}'.format(year, i.strftime('%Y-%m-%d')))
+            ax1.plot(t, df_raw.loc[i.strftime('%Y-%m-%d'), str_month])
 
+            plt.pause(0.1)
 
+        plt.ioff()
+        plt.show()
 
 
 if __name__ == '__main__':
@@ -205,8 +220,8 @@ if __name__ == '__main__':
     test = CommodityAnalysis('RB', ['01', '05', '10'])
 
     # Raw Data with price, volume, and positions
-    df_RB = pd.read_csv('/home/nealzc1991/PycharmProjects/Py4Invst/Fundamental/RB.csv')
-    # df_RB = pd.read_csv('/home/nealzc/PycharmProjects/Py4Invst/Fundamental/RB.csv')
+    # df_RB = pd.read_csv('/home/nealzc1991/PycharmProjects/Py4Invst/Fundamental/RB.csv')
+    df_RB = pd.read_csv('/home/nealzc/PycharmProjects/Py4Invst/Fundamental/RB.csv')
     df_RB.set_index('Date', inplace=True)
 
     # Construct most and second most active contract data series
@@ -218,24 +233,6 @@ if __name__ == '__main__':
     #
 
     # Dates for last trading dates
-    ls_dates = test.last_trading_date()
+    last_dates = test.last_trading_date()
     # Plot futures curve
     test.plot_futures_curve(df_raw=df_RB)
-
-
-    ###
-    asset = test.str_asset
-    ls_str_month = test.ls_str_month
-    df_raw = df_RB.copy()
-    ls_dates = test.last_trading_date()
-    ls_dates.sort()
-
-    df_raw.loc[:, 'Date'] = test.ls_trading_date
-    df_raw.loc[:, 'Date'] = df_raw.loc[:, 'Date'].apply(pd.to_datetime)
-
-    na_time = np.array(ls_dates)
-    tex = df_raw.iloc[:200]['Date']
-    for i in tex:
-        x = (na_time - tex[0])
-        print(x)
-    [i.days for i in x]
