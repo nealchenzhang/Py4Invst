@@ -5,15 +5,10 @@ import datetime as dt
 import numpy as np
 import pandas as pd
 
-import matplotlib
 import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
-from mpl_toolkits.mplot3d import Axes3D
 
 from matplotlib import style
 style.use('ggplot')
-
-from Market_Analysis.Market_Analysis_Tools.Regression_Analysis import Regression_Analysis as RA
 
 
 class CommodityAnalysis(object):
@@ -31,7 +26,7 @@ class CommodityAnalysis(object):
         self.ls_trading_date = None
         self.df_cc0 = None
         self.df_cc1 = None
-        self.df_next_c = None
+        self.df_spread = None
 
     @staticmethod
     def _second_mostly_traded(a,b,c):
@@ -133,15 +128,15 @@ class CommodityAnalysis(object):
         """
         asset = self.str_asset
         df_raw = df_raw.copy()
-        df_cc1 = pd.DataFrame(columns=[asset+'cc0_p', asset+'cc0_v', asset+'cc0_po'])
+        df_cc1 = pd.DataFrame(columns=[asset+'cc1_p', asset+'cc1_v', asset+'cc1_po'])
         dic_second_active_contract = self._second_traded_contract(df_raw=df_raw)
-        tmp = pd.DataFrame(columns=[asset+'cc0_p', asset+'cc0_v', asset+'cc0_po'])
+        tmp = pd.DataFrame(columns=[asset+'cc1_p', asset+'cc1_v', asset+'cc1_po'])
         for i in dic_second_active_contract.keys():
-            tmp.loc[:, asset+'cc0_p'] = df_raw.loc[dic_second_active_contract[i], i+'_p']
-            tmp.loc[:, asset+'cc0_v'] = df_raw.loc[dic_second_active_contract[i], i+'_v']
-            tmp.loc[:, asset+'cc0_po'] = df_raw.loc[dic_second_active_contract[i], i+'_po']
+            tmp.loc[:, asset+'cc1_p'] = df_raw.loc[dic_second_active_contract[i], i+'_p']
+            tmp.loc[:, asset+'cc1_v'] = df_raw.loc[dic_second_active_contract[i], i+'_v']
+            tmp.loc[:, asset+'cc1_po'] = df_raw.loc[dic_second_active_contract[i], i+'_po']
             df_cc1 = df_cc1.append(tmp)
-            tmp = pd.DataFrame(columns=[asset + 'cc0_p', asset + 'cc0_v', asset + 'cc0_po'])
+            tmp = pd.DataFrame(columns=[asset + 'cc1_p', asset + 'cc1_v', asset + 'cc1_po'])
         df_cc1 = df_cc1.sort_index(ascending=True)
         self.df_cc1 = df_cc1
         return df_cc1
@@ -173,6 +168,13 @@ class CommodityAnalysis(object):
         return ls_last_trading_date
 
     def plot_futures_curve(self, df_raw, year=2010):
+        """
+        Here, the futures curve is calculated based on the contract expiry date
+        noramlly, for example, RB contract is expired on 15th of the month
+        :param df_raw:
+        :param year:
+        :return:
+        """
         asset = self.str_asset
         df_raw = df_raw.copy()
         ls_dates = self.last_trading_date()
@@ -211,6 +213,36 @@ class CommodityAnalysis(object):
         plt.ioff()
         plt.show()
 
+    def spread_cal(self, df_raw):
+        """
+        Spread analysis is based on this particular spread calculation.
+        Rationale:
+            spread is calculated based on the next most active contracts
+            e.g., today is Dec 30
+                if the most active contract is May contract,
+                next most active contract is Oct contract,
+                then spread = May - Oct
+                instead of Jan - May
+
+        :param df_raw:
+        :return:
+        """
+        asset = self.str_asset
+        df_raw = df_raw.copy()
+        cols = [str(asset) + i for i in self.ls_str_month]
+        price_cols = [i+'_p' for i in cols]
+
+        df_cc0 = self.df_cc0
+        df_cc1 = self.df_cc1
+
+        i = price_cols[0]
+        for i in price_cols:
+            # find the period for the 'spread' when it can be traded
+            df_tmp = df_raw.loc[:, i] - df_cc1.loc[:, str(asset)+'cc1_p']
+
+
+
+
 
 if __name__ == '__main__':
     ####################################################################
@@ -220,13 +252,13 @@ if __name__ == '__main__':
     test = CommodityAnalysis('RB', ['01', '05', '10'])
 
     # Raw Data with price, volume, and positions
-    # df_RB = pd.read_csv('/home/nealzc1991/PycharmProjects/Py4Invst/Fundamental/RB.csv')
-    df_RB = pd.read_csv('/home/nealzc/PycharmProjects/Py4Invst/Fundamental/RB.csv')
+    # df_RB = pd.read_csv('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/RB.csv')
+    df_RB = pd.read_csv('/home/nealzc/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/RB.csv')
     df_RB.set_index('Date', inplace=True)
 
     # Construct most and second most active contract data series
-    df_CC1 = test.active_contract(df_raw=df_RB)
-    df_CC2 = test.second_active_contract(df_raw=df_RB)
+    df_cc0 = test.active_contract(df_raw=df_RB)
+    df_cc1 = test.second_active_contract(df_raw=df_RB)
 
     # For continuous contracts analysis, use df_CC1
     # Further adjustment needed for df_CC1
@@ -236,3 +268,13 @@ if __name__ == '__main__':
     last_dates = test.last_trading_date()
     # Plot futures curve
     test.plot_futures_curve(df_raw=df_RB)
+
+    df_int3M = pd.read_csv('/home/nealzc/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/DR3M.csv')
+    df_int3M.dropna(inplace=True)
+    df_int3M.set_index('Date', inplace=True)
+
+    df_result = pd.merge(df_RB, df_int3M, left_index=True, right_index=True, how='outer')
+
+    df_result = df_result.dropna(thresh=2)
+    df_result.loc[:, 'DR3M'] = df_result.loc[:, 'DR3M'].fillna(method='bfill').fillna(method='ffill')
+
