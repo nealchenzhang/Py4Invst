@@ -26,6 +26,7 @@ class CommodityAnalysis(object):
         self.ls_trading_date = None
         self.df_cc0 = None
         self.df_cc1 = None
+        self.df_next_cc1 = None
         self.df_spread = None
 
     @staticmethod
@@ -204,6 +205,7 @@ class CommodityAnalysis(object):
             plt.cla()
             ax1.set_xlim(0, 366)
             ax1.set_xlabel('Time to maturity')
+            ax1.set_ylim(2000, 5000)
             ax1.set_ylabel('Prices')
             plt.title('Futures curve for year {}\nand date {}'.format(year, i.strftime('%Y-%m-%d')))
             ax1.plot(t, df_raw.loc[i.strftime('%Y-%m-%d'), str_month])
@@ -230,18 +232,31 @@ class CommodityAnalysis(object):
         asset = self.str_asset
         df_raw = df_raw.copy()
         cols = [str(asset) + i for i in self.ls_str_month]
-        price_cols = [i+'_p' for i in cols]
+        position_cols = [i+'_po' for i in cols]
 
         df_cc0 = self.df_cc0
         df_cc1 = self.df_cc1
 
-        i = price_cols[0]
-        for i in price_cols:
+        df_next_cc1 = pd.DataFrame(columns=[asset+'nextcc1_p', asset+'nextcc1_v', asset+'nextcc1_po'])
+        df_tmp = pd.DataFrame(columns=[asset + 'nextcc1_p', asset + 'nextcc1_v', asset + 'nextcc1_po'])
+        ds_tmp = pd.Series()
+        for i in position_cols:
             # find the period for the 'spread' when it can be traded
-            df_tmp = df_raw.loc[:, i] - df_cc1.loc[:, str(asset)+'cc1_p']
 
+            ds_tmp = df_raw.loc[:, i] - df_cc1.loc[:, str(asset)+'cc1_po']
+            ds_tmp = ds_tmp.where(ds_tmp == 0).dropna()
+            ix = ds_tmp.index
 
+            df_tmp= df_raw.loc[ix, [i.split('_')[0]+'_p', i.split('_')[0]+'_v', i.split('_')[0]+'_po']]
+            df_tmp.columns = [(asset+'nextcc1_p'), (asset+'nextcc1_v'), (asset+'nextcc1_po')]
+            df_next_cc1 = df_next_cc1.append(df_tmp, sort=True)
+        df_next_cc1 = df_next_cc1.sort_index(ascending=True)
+        self.df_next_cc1 = df_next_cc1
 
+        df_spread = pd.DataFrame(columns=['spread_price'])
+
+        df_spread.loc[:, 'spread_price'] = df_cc0.loc[:, asset+'cc0_p'] - df_next_cc1.loc[:, asset+'nextcc1_p']
+        return df_next_cc1
 
 
 if __name__ == '__main__':
@@ -252,8 +267,8 @@ if __name__ == '__main__':
     test = CommodityAnalysis('RB', ['01', '05', '10'])
 
     # Raw Data with price, volume, and positions
-    # df_RB = pd.read_csv('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/RB.csv')
-    df_RB = pd.read_csv('/home/nealzc/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/RB.csv')
+    df_RB = pd.read_csv('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/RB.csv')
+    # df_RB = pd.read_csv('/home/nealzc/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/RB.csv')
     df_RB.set_index('Date', inplace=True)
 
     # Construct most and second most active contract data series
@@ -267,14 +282,18 @@ if __name__ == '__main__':
     # Dates for last trading dates
     last_dates = test.last_trading_date()
     # Plot futures curve
-    test.plot_futures_curve(df_raw=df_RB)
+    test.plot_futures_curve(df_raw=df_RB, year=2018)
 
-    df_int3M = pd.read_csv('/home/nealzc/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/DR3M.csv')
-    df_int3M.dropna(inplace=True)
-    df_int3M.set_index('Date', inplace=True)
+    #############################################################################
+    # # df_int3M = pd.read_csv('/home/nealzc/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/DR3M.csv')
+    # df_int3M = pd.read_csv('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/DR3M.csv')
+    # df_int3M.dropna(inplace=True)
+    # df_int3M.set_index('Date', inplace=True)
+    #
+    # df_result = pd.merge(df_RB, df_int3M, left_index=True, right_index=True, how='outer')
+    #
+    # df_result = df_result.dropna(thresh=2)
+    # df_result.loc[:, 'DR3M'] = df_result.loc[:, 'DR3M'].fillna(method='bfill').fillna(method='ffill')
 
-    df_result = pd.merge(df_RB, df_int3M, left_index=True, right_index=True, how='outer')
-
-    df_result = df_result.dropna(thresh=2)
-    df_result.loc[:, 'DR3M'] = df_result.loc[:, 'DR3M'].fillna(method='bfill').fillna(method='ffill')
+    # df_next_cc1 = test.spread_cal(df_raw=df_RB)
 
