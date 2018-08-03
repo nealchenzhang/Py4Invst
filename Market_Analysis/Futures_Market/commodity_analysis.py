@@ -284,8 +284,8 @@ if __name__ == '__main__':
     test = CommodityAnalysis('RB', ['01', '05', '10'])
 
     # Raw Data with price, volume, and positions
-    df_RB = pd.read_csv('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/RB.csv')
-    # df_RB = pd.read_csv('/home/nealzc/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/RB.csv')
+    # df_RB = pd.read_csv('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/RB.csv')
+    df_RB = pd.read_csv('/home/nealzc/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/RB.csv')
     df_RB.set_index('Date', inplace=True)
 
     # Construct most and second most active contract data series
@@ -305,14 +305,28 @@ if __name__ == '__main__':
     print(df_spread)
 
     # #############################################################################
-    # df_int3M = pd.read_csv('/home/nealzc/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/DR3M.csv')
-    # # df_int3M = pd.read_csv('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/DR3M.csv')
-    # df_int3M.dropna(inplace=True)
-    # df_int3M.set_index('Date', inplace=True)
-    #
-    # df_result = pd.merge(df_RB, df_int3M, left_index=True, right_index=True, how='outer')
-    #
-    # df_result = df_result.dropna(thresh=2)
-    # df_result.loc[:, 'DR3M'] = df_result.loc[:, 'DR3M'].fillna(method='bfill').fillna(method='ffill')
+    df_int3M = pd.read_csv('/home/nealzc/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/DR3M.csv')
+    # df_int3M = pd.read_csv('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/DR3M.csv')
+    df_int3M.dropna(inplace=True)
+    df_int3M.set_index('Date', inplace=True)
 
+    df_result = pd.merge(df_RB, df_int3M, left_index=True, right_index=True, how='outer')
+
+    df_result = df_result.dropna(thresh=2)
+    df_result.loc[:, 'DR3M'] = df_result.loc[:, 'DR3M'].fillna(method='bfill').fillna(method='ffill')
+
+
+    import pickle
+
+    pickle_file = open('/home/nealzc/PycharmProjects/Py4Invst/Market_Analysis/Market_Analysis_Tools/df_raw.pkl', 'wb')
+    pickle.dump(df_result, pickle_file)
+    pickle_file.close()
+
+    pickle_file = open('/home/nealzc/PycharmProjects/Py4Invst/Market_Analysis/Market_Analysis_Tools/df_spread.pkl', 'wb')
+    pickle.dump(df_spread, pickle_file)
+    pickle_file.close()
+
+    pickle_file = open('/home/nealzc/PycharmProjects/Py4Invst/Market_Analysis/Market_Analysis_Tools/df_cc0.pkl', 'wb')
+    pickle.dump(df_cc0, pickle_file)
+    pickle_file.close()
 

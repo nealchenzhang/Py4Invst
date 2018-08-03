@@ -400,18 +400,18 @@ if __name__ == '__main__':
     #              PART III  Model Selection and Prediction            #
     ####################################################################
 
-    # this is the nsteps ahead predictor function
-    from statsmodels.tsa.arima_model import _arma_predict_out_of_sample
-
-    res = sm.tsa.ARMA(y, (3, 2)).fit(trend="nc")
-    res = arma_model
-    # get what you need for predicting one-step ahead
-    params = res.params
-    residuals = res.resid
-    p = res.k_ar
-    q = res.k_ma
-    k_exog = res.k_exog
-    k_trend = res.k_trend
-    steps = 1
-
-    _arma_predict_out_of_sample(params, steps, residuals, p, q, k_trend, k_exog, endog=df_data, exog=None, start=len(df_data))
+    # # this is the nsteps ahead predictor function
+    # from statsmodels.tsa.arima_model import _arma_predict_out_of_sample
+    #
+    # res = sm.tsa.ARMA(y, (3, 2)).fit(trend="nc")
+    # res = arma_model
+    # # get what you need for predicting one-step ahead
+    # params = res.params
+    # residuals = res.resid
+    # p = res.k_ar
+    # q = res.k_ma
+    # k_exog = res.k_exog
+    # k_trend = res.k_trend
+    # steps = 1
+    #
+    # _arma_predict_out_of_sample(params, steps, residuals, p, q, k_trend, k_exog, endog=df_data, exog=None, start=len(df_data))
