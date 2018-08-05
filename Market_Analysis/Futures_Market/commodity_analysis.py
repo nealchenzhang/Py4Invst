@@ -28,104 +28,209 @@ class CommodityAnalysis(object):
         self.month_diff = month_diff.copy()
         self.last_trading_day = last_trading_day
         self.ls_trading_date = None
+        self.ls_adjust_date = None # roll contract date
+        self.dict_start_end = None
         self.df_cc0 = None
         self.df_cc1 = None
+        self.df_cc0_adjusted = None
+        self.df_cc1_adjusted = None
         self.df_next_cc1 = None
         self.df_spread = None
 
     @staticmethod
-    def _second_mostly_traded(a,b,c):
+    def _second_mostly(a,b,c):
         ls = [a,b,c]
         ls.remove(np.max(ls))
         return np.max(ls)
 
-    def _mostly_traded_contract(self, df_raw):
+    def _mostly_traded_contract(self, df_raw, roll='Open_Interest'):
         """
         asset +
             _p as close price
-            _po as position numbers
+            _oi as open interests
             _v as trading volume numbers
         :param df_raw:
+        roll: str
+            'Open_Interest': assumed to be O.I.
+            'Volume': can be set
         :return: dictionary of date of mostly traded contract
         """
+        if roll == 'Open_Interest':
+            col = 'oi'
+        if roll == 'Volume':
+            col = 'v'
         asset = self.str_asset
         df_raw = df_raw.copy()
         cols = [str(asset) + i for i in self.ls_str_month]
-        po_cols = [i+'_po' for i in cols]
-        n = len(po_cols)
+        roll_cols = [i+'_'+col for i in cols]
+        n = len(roll_cols)
         if n == 3:
-            df_raw['most_traded_po'] = df_raw.apply(
-                lambda x: max(x[po_cols[0]], x[po_cols[1]], x[po_cols[2]]), axis=1
+            df_raw['most_traded_'+col] = df_raw.apply(
+                lambda x: max(x[roll_cols[0]], x[roll_cols[1]], x[roll_cols[2]]), axis=1
             )
         elif n == 2:
-            df_raw['most_traded_po'] = df_raw.apply(
-                lambda x: max(x[po_cols[0]], x[po_cols[1]]), axis=1
+            df_raw['most_traded_'+col] = df_raw.apply(
+                lambda x: max(x[roll_cols[0]], x[roll_cols[1]]), axis=1
             )
         dic = {}
-        for i in po_cols:
-            tmp = df_raw.loc[:, i] - df_raw.loc[:, 'most_traded_po']
+        for i in roll_cols:
+            tmp = df_raw.loc[:, i] - df_raw.loc[:, 'most_traded_'+col]
             tmp.dropna(inplace=True)
             ls_index = tmp.where(tmp == 0).dropna().index.tolist()
             dic[i.split('_')[0]] = ls_index
         return dic
 
-    def _second_traded_contract(self, df_raw):
+    def _second_traded_contract(self, df_raw, roll='Open_Interest'):
         """
         asset +
             _p as close price
-            _po as position numbers
+            _oi as position numbers
             _v as trading volume numbers
         :param df_raw:
         :return: dictionary of date of second mostly traded contract
         """
+        if roll == 'Open_Interest':
+            col = 'oi'
+        if roll == 'Volume':
+            col = 'v'
         asset = self.str_asset
         df_raw = df_raw.copy()
         cols = [str(asset) + i for i in self.ls_str_month]
-        po_cols = [i+'_po' for i in cols]
-        n = len(po_cols)
+        roll_cols = [i+'_'+col for i in cols]
+        n = len(roll_cols)
         if n == 3:
-            df_raw['second_traded_po'] = df_raw.apply(
-                lambda x: self._second_mostly_traded(
-                    x[po_cols[0]], x[po_cols[1]], x[po_cols[2]]
+            df_raw['second_traded_'+col] = df_raw.apply(
+                lambda x: self._second_mostly(
+                    x[roll_cols[0]], x[roll_cols[1]], x[roll_cols[2]]
                 ), axis=1
             )
         elif n == 2:
-            df_raw['second_traded_po'] = df_raw.apply(
-                lambda x: self._second_mostly_traded(
-                    x[po_cols[0]], x[po_cols[1]], c=0 # c is used to keep the func work
+            df_raw['second_traded_'+col] = df_raw.apply(
+                lambda x: self._second_mostly(
+                    x[roll_cols[0]], x[roll_cols[1]], c=0 # c is used to keep the func work
                 ), axis=1
             )
         dic = {}
-        for i in po_cols:
-            tmp = df_raw.loc[:, i] - df_raw.loc[:, 'second_traded_po']
+        for i in roll_cols:
+            tmp = df_raw.loc[:, i] - df_raw.loc[:, 'second_traded_'+col]
             tmp.dropna(inplace=True)
             ls_index = tmp.where(tmp == 0).dropna().index.tolist()
             dic[i.split('_')[0]] = ls_index
         return dic
 
-    def active_contract(self, df_raw):
+    def _adjust_cc(self, df_raw, df_cc, roll='Open_Interest'):
         """
 
-        :param df_raw: raw data
+        :param df_raw:
+        :param df_cc:
+        :param roll:
+        :return:
+        """
+        if roll == 'Open_Interest':
+            col = 'oi'
+        if roll == 'Volume':
+            col = 'v'
+        asset = self.str_asset
+        cols = [str(asset) + i for i in self.ls_str_month]
+        oi_cols = [i+'_oi' for i in cols]
+        roll_cols = [i + '_' + col for i in cols]
+        ls_cols = df_cc.columns.tolist()
+        c_oi = [i for i in ls_cols if '_oi' in i][0].split(asset)[1]
+        c_price = [i for i in ls_cols if '_p' in i][0].split(asset)[1] # To calculate multi
+
+        df_cc_adjusted = df_cc.copy()
+        df_cc = df_cc.copy()
+
+        df_cc_tmp = df_cc.copy()
+        df_cc_tmp.loc[:, 'Date'] = df_cc_tmp.index.tolist()
+        df_cc_tmp.loc[:, 'Date'] = df_cc_tmp.loc[:, 'Date'].apply(pd.to_datetime)
+
+        dict_start_end = {}
+
+        for i in oi_cols:
+            ds_tmp = df_raw.loc[:, i] - df_cc_tmp.loc[:, str(asset) + c_oi]
+            ds_tmp = ds_tmp.where(ds_tmp == 0).dropna()
+            ix = ds_tmp.index
+
+            ds_ix = pd.Series(ix)
+            ds_ix = ds_ix.apply(pd.to_datetime)
+
+            ls_start = (ds_ix.where(ds_ix.diff(1) > dt.timedelta(days=14)).dropna()).index.tolist()
+            ls_start.insert(0, 0)
+
+            for j in range(len(ls_start)):
+                ix_start = ls_start[j]
+                start_date = (ds_ix.iloc[ix_start]).strftime('%Y-%m-%d')
+                try:
+                    ix_end = ls_start[j+1] - 1
+                except:
+                    ix_end = -1
+                end_date = (ds_ix.iloc[ix_end]).strftime('%Y-%m-%d')
+                dict_start_end[start_date] = end_date
+                print('start: {}, end:{}'.format(start_date, end_date))
+        ls_adjust_date = [v for v in sorted(dict_start_end.keys(), reverse=True)]
+        self.ls_adjust_date = ls_adjust_date
+        self.dict_start_end = dict_start_end
+
+        ls_dates = list(dict_start_end.keys())
+        for i in list(dict_start_end.values()):
+            ls_dates.append(i)
+        ls_dates = sorted(ls_dates, reverse=True)
+
+        df_raw.loc[ls_dates, roll_cols].apply(
+            lambda x: self._second_mostly(
+                x[roll_cols[0]], x[roll_cols[1]], x[roll_cols[2]]
+                ), axis=1
+        )
+        x = df_raw.loc[ls_dates, roll_cols].apply(
+                lambda x: max(x[roll_cols[0]], x[roll_cols[1]], x[roll_cols[2]]), axis=1
+        )
+        y = df_cc.loc[ls_dates, str(asset) + c_oi]
+        # # Backward adjustment
+        # for i in oi_cols:
+        #     for j in range(len(ls_adjust_date)):
+        #         if j == 0:
+        #             start = ls_adjust_date[j]
+        #             df_cc_adjusted.loc[start: dict_start_end[start], :] = \
+        #                 df_cc.loc[start: dict_start_end[start], :]
+        #         else:
+
+
+
+
+
+
+
+
+    def continuous_contract(self, df_raw, roll='Open_Interest', adjustment=False):
+        """
+
+        :param
+        df_raw: raw data
+        roll: method of roll to continuous contract
         :return: DataFrame of most active contract
         """
         asset = self.str_asset
         df_raw = df_raw.copy()
-        df_cc0 = pd.DataFrame(columns=[asset+'cc0_p', asset+'cc0_v', asset+'cc0_po'])
-        dic_active_contract = self._mostly_traded_contract(df_raw=df_raw)
-        tmp = pd.DataFrame(columns=[asset+'cc0_p', asset+'cc0_v', asset+'cc0_po'])
-        for i in dic_active_contract.keys():
-            tmp.loc[:, asset+'cc0_p'] = df_raw.loc[dic_active_contract[i], i+'_p']
-            tmp.loc[:, asset+'cc0_v'] = df_raw.loc[dic_active_contract[i], i+'_v']
-            tmp.loc[:, asset+'cc0_po'] = df_raw.loc[dic_active_contract[i], i+'_po']
+        df_cc0 = pd.DataFrame(columns=[asset+'cc0_p', asset+'cc0_v', asset+'cc0_oi'])
+        dic_continuous_contract = self._mostly_traded_contract(df_raw=df_raw, roll=roll)
+        tmp = pd.DataFrame(columns=[asset+'cc0_p', asset+'cc0_v', asset+'cc0_oi'])
+        for i in dic_continuous_contract.keys():
+            tmp.loc[:, asset+'cc0_p'] = df_raw.loc[dic_continuous_contract[i], i+'_p']
+            tmp.loc[:, asset+'cc0_v'] = df_raw.loc[dic_continuous_contract[i], i+'_v']
+            tmp.loc[:, asset+'cc0_oi'] = df_raw.loc[dic_continuous_contract[i], i+'_oi']
             df_cc0 = df_cc0.append(tmp)
-            tmp = pd.DataFrame(columns=[asset + 'cc0_p', asset + 'cc0_v', asset + 'cc0_po'])
+            tmp = pd.DataFrame(columns=[asset + 'cc0_p', asset + 'cc0_v', asset + 'cc0_oi'])
         df_cc0 = df_cc0.sort_index(ascending=True)
         self.df_cc0 = df_cc0
         self.ls_trading_date = df_cc0.index.tolist()
+
+        if adjustment:
+            df_cc0 = (self._adjust_cc(df_raw, df_cc0)).copy()
+            self.df_cc0_adjusted = df_cc0
         return df_cc0
 
-    def second_active_contract(self, df_raw):
+    def second_continuous_contract(self, df_raw, roll='Open_Interest', adjustment=False):
         """
 
         :param df_raw: raw data
@@ -133,17 +238,22 @@ class CommodityAnalysis(object):
         """
         asset = self.str_asset
         df_raw = df_raw.copy()
-        df_cc1 = pd.DataFrame(columns=[asset+'cc1_p', asset+'cc1_v', asset+'cc1_po'])
-        dic_second_active_contract = self._second_traded_contract(df_raw=df_raw)
-        tmp = pd.DataFrame(columns=[asset+'cc1_p', asset+'cc1_v', asset+'cc1_po'])
-        for i in dic_second_active_contract.keys():
-            tmp.loc[:, asset+'cc1_p'] = df_raw.loc[dic_second_active_contract[i], i+'_p']
-            tmp.loc[:, asset+'cc1_v'] = df_raw.loc[dic_second_active_contract[i], i+'_v']
-            tmp.loc[:, asset+'cc1_po'] = df_raw.loc[dic_second_active_contract[i], i+'_po']
+        df_cc1 = pd.DataFrame(columns=[asset+'cc1_p', asset+'cc1_v', asset+'cc1_oi'])
+        dic_second_continuous_contract = self._second_traded_contract(df_raw=df_raw, roll=roll)
+        tmp = pd.DataFrame(columns=[asset+'cc1_p', asset+'cc1_v', asset+'cc1_oi'])
+        for i in dic_second_continuous_contract.keys():
+            tmp.loc[:, asset+'cc1_p'] = df_raw.loc[dic_second_continuous_contract[i], i+'_p']
+            tmp.loc[:, asset+'cc1_v'] = df_raw.loc[dic_second_continuous_contract[i], i+'_v']
+            tmp.loc[:, asset+'cc1_oi'] = df_raw.loc[dic_second_continuous_contract[i], i+'_oi']
             df_cc1 = df_cc1.append(tmp)
-            tmp = pd.DataFrame(columns=[asset + 'cc1_p', asset + 'cc1_v', asset + 'cc1_po'])
+            tmp = pd.DataFrame(columns=[asset + 'cc1_p', asset + 'cc1_v', asset + 'cc1_oi'])
         df_cc1 = df_cc1.sort_index(ascending=True)
         self.df_cc1 = df_cc1
+
+        if adjustment:
+            df_cc1 = (self._adjust_cc(df_raw, df_cc1)).copy()
+            self.df_cc1_adjusted = df_cc1
+
         return df_cc1
 
     def last_trading_date(self):
@@ -241,21 +351,21 @@ class CommodityAnalysis(object):
         asset = self.str_asset
         df_raw = df_raw.copy()
         cols = [str(asset) + i for i in self.ls_str_month]
-        position_cols = [i+'_po' for i in cols]
+        oi_cols = [i+'_oi' for i in cols]
 
         df_cc0 = self.df_cc0
         df_cc1 = self.df_cc1
 
-        df_next_cc1 = pd.DataFrame(columns=[asset+'nextcc1_p', asset+'nextcc1_v', asset+'nextcc1_po', 'month'])
-        for i in position_cols:
+        df_next_cc1 = pd.DataFrame(columns=[asset+'nextcc1_p', asset+'nextcc1_v', asset+'nextcc1_oi', 'month'])
+        for i in oi_cols:
             mon = int(i.split('_')[0][-2:])
             # find the period for the 'spread' when it can be traded
-            ds_tmp = df_raw.loc[:, i] - df_cc1.loc[:, str(asset)+'cc1_po']
+            ds_tmp = df_raw.loc[:, i] - df_cc1.loc[:, str(asset)+'cc1_oi']
             ds_tmp = ds_tmp.where(ds_tmp == 0).dropna()
             ix = ds_tmp.index
 
-            df_tmp= df_raw.loc[ix, [i.split('_')[0]+'_p', i.split('_')[0]+'_v', i.split('_')[0]+'_po']]
-            df_tmp.columns = [(asset+'nextcc1_p'), (asset+'nextcc1_v'), (asset+'nextcc1_po')]
+            df_tmp= df_raw.loc[ix, [i.split('_')[0]+'_p', i.split('_')[0]+'_v', i.split('_')[0]+'_oi']]
+            df_tmp.columns = [(asset+'nextcc1_p'), (asset+'nextcc1_v'), (asset+'nextcc1_oi')]
             df_tmp.loc[:, 'month'] = mon
             df_next_cc1 = df_next_cc1.append(df_tmp, sort=True)
         df_next_cc1 = df_next_cc1.sort_index(ascending=True)
@@ -284,29 +394,28 @@ if __name__ == '__main__':
     test = CommodityAnalysis('RB', ['01', '05', '10'])
 
     # Raw Data with price, volume, and positions
-    # df_RB = pd.read_csv('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/RB.csv')
-    df_RB = pd.read_csv('/home/nealzc/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/RB.csv')
+    df_RB = pd.read_csv('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/RB.csv')
+    # df_RB = pd.read_csv('/home/nealzc/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/RB.csv')
     df_RB.set_index('Date', inplace=True)
 
     # Construct most and second most active contract data series
-    df_cc0 = test.active_contract(df_raw=df_RB)
-    df_cc1 = test.second_active_contract(df_raw=df_RB)
+    df_cc = test.continuous_contract(df_raw=df_RB, roll='Open_Interest')
+    df_cc1 = test.second_continuous_contract(df_raw=df_RB)
 
-    # For continuous contracts analysis, use df_CC1
-    # Further adjustment needed for df_CC1
-    #
+    # For continuous contracts analysis, use df_adjusted_cc0
+    # df_adjusted_cc0 = test.continuous_contract(df_raw=df_RB, roll='Open_Interest', adjusted=True)
 
     # Dates for last trading dates
-    last_dates = test.last_trading_date()
+    # last_dates = test.last_trading_date()
     # Plot futures curve
     # test.plot_futures_curve(df_raw=df_RB, year=2017)
 
-    df_spread = test.spread_cal(df_raw=df_RB)
-    print(df_spread)
+    # df_spread = test.spread_cal(df_raw=df_RB)
+    # print(df_spread)
 
     # #############################################################################
-    df_int3M = pd.read_csv('/home/nealzc/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/DR3M.csv')
-    # df_int3M = pd.read_csv('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/DR3M.csv')
+    # df_int3M = pd.read_csv('/home/nealzc/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/DR3M.csv')
+    df_int3M = pd.read_csv('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/DR3M.csv')
     df_int3M.dropna(inplace=True)
     df_int3M.set_index('Date', inplace=True)
 
@@ -318,15 +427,15 @@ if __name__ == '__main__':
 
     import pickle
 
-    pickle_file = open('/home/nealzc/PycharmProjects/Py4Invst/Market_Analysis/Market_Analysis_Tools/df_raw.pkl', 'wb')
+    pickle_file = open('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Market_Analysis_Tools/df_raw.pkl', 'wb')
     pickle.dump(df_result, pickle_file)
     pickle_file.close()
 
-    pickle_file = open('/home/nealzc/PycharmProjects/Py4Invst/Market_Analysis/Market_Analysis_Tools/df_spread.pkl', 'wb')
+    pickle_file = open('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Market_Analysis_Tools/df_spread.pkl', 'wb')
     pickle.dump(df_spread, pickle_file)
     pickle_file.close()
 
-    pickle_file = open('/home/nealzc/PycharmProjects/Py4Invst/Market_Analysis/Market_Analysis_Tools/df_cc0.pkl', 'wb')
+    pickle_file = open('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Market_Analysis_Tools/df_cc0.pkl', 'wb')
     pickle.dump(df_cc0, pickle_file)
     pickle_file.close()
 
