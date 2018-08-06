@@ -136,7 +136,6 @@ class CommodityAnalysis(object):
         roll_cols = [i + '_' + col for i in cols]
         ls_cols = df_cc.columns.tolist()
         c_oi = [i for i in ls_cols if '_oi' in i][0].split(asset)[1]
-        c_price = [i for i in ls_cols if '_p' in i][0].split(asset)[1] # To calculate multi
 
         df_cc_adjusted = df_cc.copy()
         df_cc = df_cc.copy()
@@ -168,9 +167,9 @@ class CommodityAnalysis(object):
                 end_date = (ds_ix.iloc[ix_end]).strftime('%Y-%m-%d')
                 dict_start_end[start_date] = end_date
                 print('start: {}, end:{}'.format(start_date, end_date))
-        #TODO
-        # ls_adjust_date = [v for v in sorted(dict_start_end.keys(), reverse=True)]
-        # ls_adjust_date.remove(df_raw.index[0])
+        # Adjustment date is the start date of the new contract
+        # Remember the Non-adjustment date for the beginning of the raw data
+        ls_adjust_date = [v for v in sorted(dict_start_end.keys(), reverse=True)]
         self.ls_adjust_date = ls_adjust_date
         self.dict_start_end = dict_start_end
 
@@ -186,11 +185,11 @@ class CommodityAnalysis(object):
         )
 
         # df: calculate multiplier
-        x = df_raw.loc[ls_dates, roll_cols]
-        y = df_cc.loc[ls_dates, str(asset) + c_oi]
+        df_x = df_raw.loc[ls_dates, roll_cols]
+        df_y = df_cc.loc[ls_dates, str(asset) + c_oi]
         df = pd.DataFrame(columns=roll_cols)
         for i in roll_cols:
-            df.loc[:, i] = x.loc[:, i] - y
+            df.loc[:, i] = df_x.loc[:, i] - df_y
 
         ds_ix = pd.Series(df.index)
         ds_ix = ds_ix.apply(pd.to_datetime)
@@ -214,29 +213,35 @@ class CommodityAnalysis(object):
 
             dict_multiplier[row] = multi
 
-        # dict_cumulative_multiplier = {}
-        # ls_multiplier = list(dict_multiplier.keys())
-        # for i in range(len(ls_multiplier)):
-        #     if i == 0:
-        #         cum_multiplier = dict_multiplier[ls_multiplier[i]]
-        #         dict_cumulative_multiplier[ls_multiplier[i]] = cum_multiplier
-        #     else:
-        #         cum_multiplier *= dict_multiplier[ls_multiplier[i]]
-        #         dict_cumulative_multiplier[ls_multiplier[i]] = cum_multiplier
-        #
-        # # Backward adjustment
-        # for start in ls_adjust_date:
-        #     df_cc_adjusted.loc[start: dict_start_end[start], :] = \
-        #         df_cc.loc[start: dict_start_end[start], :] * dict_cumulative_multiplier[start]
-        #
-        # return df_cc_adjusted
+        dict_cumulative_multiplier = {}
+        ls_multiplier = list(dict_multiplier.keys())
+        for i in range(len(ls_multiplier)):
+            if i == 0:
+                cum_multiplier = dict_multiplier[ls_multiplier[i]]
+                dict_cumulative_multiplier[ls_multiplier[i]] = cum_multiplier
+            else:
+                cum_multiplier *= dict_multiplier[ls_multiplier[i]]
+                dict_cumulative_multiplier[ls_multiplier[i]] = cum_multiplier
 
+        # Backward adjustment
+        for i in range(len(ls_adjust_date)):
+            # We don't multiply the data from
+            # last adjustment date till the last row of df_raw.
+            if i == 0:
+                start = ls_adjust_date[i]
+                df_cc_adjusted.loc[start: dict_start_end[start], :] = \
+                    df_cc.loc[start: dict_start_end[start], :]
+            else:
+                start = ls_adjust_date[i]
+                df_cc_adjusted.loc[start: dict_start_end[start], :] = \
+                    df_cc.loc[start: dict_start_end[start], :] * \
+                    dict_cumulative_multiplier[ls_adjust_date[i-1]]
 
-
-
-
-
-
+        if '0' in c_oi:
+            self.df_cc0_adjusted = df_cc_adjusted.copy()
+        if '1' in c_oi:
+            self.df_cc1_adjusted = df_cc_adjusted.copy()
+        return df_cc_adjusted
 
     def continuous_contract(self, df_raw, roll='Open_Interest', adjustment=False):
         """
@@ -430,12 +435,12 @@ if __name__ == '__main__':
     test = CommodityAnalysis('RB', ['01', '05', '10'])
 
     # Raw Data with price, volume, and positions
-    # df_RB = pd.read_csv('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/RB.csv')
-    df_RB = pd.read_csv('/home/nealzc/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/RB.csv')
+    df_RB = pd.read_csv('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/RB.csv')
+    # df_RB = pd.read_csv('/home/nealzc/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/RB.csv')
     df_RB.set_index('Date', inplace=True)
 
     # Construct most and second most active contract data series
-    df_cc = test.continuous_contract(df_raw=df_RB, roll='Open_Interest')
+    df_cc0 = test.continuous_contract(df_raw=df_RB, roll='Open_Interest')
     df_cc1 = test.second_continuous_contract(df_raw=df_RB)
 
     # For continuous contracts analysis, use df_adjusted_cc0
@@ -451,27 +456,27 @@ if __name__ == '__main__':
 
     # #############################################################################
     # df_int3M = pd.read_csv('/home/nealzc/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/DR3M.csv')
-    df_int3M = pd.read_csv('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/DR3M.csv')
-    df_int3M.dropna(inplace=True)
-    df_int3M.set_index('Date', inplace=True)
-
-    df_result = pd.merge(df_RB, df_int3M, left_index=True, right_index=True, how='outer')
-
-    df_result = df_result.dropna(thresh=2)
-    df_result.loc[:, 'DR3M'] = df_result.loc[:, 'DR3M'].fillna(method='bfill').fillna(method='ffill')
-
-
-    import pickle
-
-    pickle_file = open('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Market_Analysis_Tools/df_raw.pkl', 'wb')
-    pickle.dump(df_result, pickle_file)
-    pickle_file.close()
-
-    pickle_file = open('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Market_Analysis_Tools/df_spread.pkl', 'wb')
-    pickle.dump(df_spread, pickle_file)
-    pickle_file.close()
-
-    pickle_file = open('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Market_Analysis_Tools/df_cc0.pkl', 'wb')
-    pickle.dump(df_cc0, pickle_file)
-    pickle_file.close()
+    # df_int3M = pd.read_csv('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/DR3M.csv')
+    # df_int3M.dropna(inplace=True)
+    # df_int3M.set_index('Date', inplace=True)
+    #
+    # df_result = pd.merge(df_RB, df_int3M, left_index=True, right_index=True, how='outer')
+    #
+    # df_result = df_result.dropna(thresh=2)
+    # df_result.loc[:, 'DR3M'] = df_result.loc[:, 'DR3M'].fillna(method='bfill').fillna(method='ffill')
+    #
+    #
+    # import pickle
+    #
+    # pickle_file = open('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Market_Analysis_Tools/df_raw.pkl', 'wb')
+    # pickle.dump(df_result, pickle_file)
+    # pickle_file.close()
+    #
+    # pickle_file = open('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Market_Analysis_Tools/df_spread.pkl', 'wb')
+    # pickle.dump(df_spread, pickle_file)
+    # pickle_file.close()
+    #
+    # pickle_file = open('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Market_Analysis_Tools/df_cc0.pkl', 'wb')
+    # pickle.dump(df_cc0, pickle_file)
+    # pickle_file.close()
 
