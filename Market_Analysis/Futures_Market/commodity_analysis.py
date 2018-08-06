@@ -168,7 +168,9 @@ class CommodityAnalysis(object):
                 end_date = (ds_ix.iloc[ix_end]).strftime('%Y-%m-%d')
                 dict_start_end[start_date] = end_date
                 print('start: {}, end:{}'.format(start_date, end_date))
-        ls_adjust_date = [v for v in sorted(dict_start_end.keys(), reverse=True)]
+        #TODO
+        # ls_adjust_date = [v for v in sorted(dict_start_end.keys(), reverse=True)]
+        # ls_adjust_date.remove(df_raw.index[0])
         self.ls_adjust_date = ls_adjust_date
         self.dict_start_end = dict_start_end
 
@@ -182,18 +184,52 @@ class CommodityAnalysis(object):
                 x[roll_cols[0]], x[roll_cols[1]], x[roll_cols[2]]
                 ), axis=1
         )
-        x = df_raw.loc[ls_dates, roll_cols].apply(
-                lambda x: max(x[roll_cols[0]], x[roll_cols[1]], x[roll_cols[2]]), axis=1
-        )
+
+        # df: calculate multiplier
+        x = df_raw.loc[ls_dates, roll_cols]
         y = df_cc.loc[ls_dates, str(asset) + c_oi]
+        df = pd.DataFrame(columns=roll_cols)
+        for i in roll_cols:
+            df.loc[:, i] = x.loc[:, i] - y
+
+        ds_ix = pd.Series(df.index)
+        ds_ix = ds_ix.apply(pd.to_datetime)
+        ls_multi_dates = ds_ix.loc[
+            (
+                (ds_ix.where(ds_ix.diff(-1) < dt.timedelta(days=14))).dropna()
+            ).index.tolist()
+        ].apply(lambda x: x.strftime('%Y-%m-%d')).tolist()
+
+        dict_multiplier = {}
+        df = df.loc[ls_multi_dates,:].copy()
+        for row in df.index:
+            col_x1 = df.loc[row].where(df.loc[row] == 0).dropna().index.tolist()[0]
+            x2 = df.loc[row].where(df.loc[row] < 0).dropna().max()
+            col_x2 = df.loc[row].where(df.loc[row] == x2).dropna().index.tolist()[0]
+
+            col_x1_price = col_x1.split('_')[0]+'_p'
+            col_x2_price = col_x2.split('_')[0]+'_p'
+
+            multi = df_raw.loc[row, col_x1_price] / df_raw.loc[row, col_x2_price]
+
+            dict_multiplier[row] = multi
+
+        # dict_cumulative_multiplier = {}
+        # ls_multiplier = list(dict_multiplier.keys())
+        # for i in range(len(ls_multiplier)):
+        #     if i == 0:
+        #         cum_multiplier = dict_multiplier[ls_multiplier[i]]
+        #         dict_cumulative_multiplier[ls_multiplier[i]] = cum_multiplier
+        #     else:
+        #         cum_multiplier *= dict_multiplier[ls_multiplier[i]]
+        #         dict_cumulative_multiplier[ls_multiplier[i]] = cum_multiplier
+        #
         # # Backward adjustment
-        # for i in oi_cols:
-        #     for j in range(len(ls_adjust_date)):
-        #         if j == 0:
-        #             start = ls_adjust_date[j]
-        #             df_cc_adjusted.loc[start: dict_start_end[start], :] = \
-        #                 df_cc.loc[start: dict_start_end[start], :]
-        #         else:
+        # for start in ls_adjust_date:
+        #     df_cc_adjusted.loc[start: dict_start_end[start], :] = \
+        #         df_cc.loc[start: dict_start_end[start], :] * dict_cumulative_multiplier[start]
+        #
+        # return df_cc_adjusted
 
 
 
@@ -394,8 +430,8 @@ if __name__ == '__main__':
     test = CommodityAnalysis('RB', ['01', '05', '10'])
 
     # Raw Data with price, volume, and positions
-    df_RB = pd.read_csv('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/RB.csv')
-    # df_RB = pd.read_csv('/home/nealzc/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/RB.csv')
+    # df_RB = pd.read_csv('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/RB.csv')
+    df_RB = pd.read_csv('/home/nealzc/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/RB.csv')
     df_RB.set_index('Date', inplace=True)
 
     # Construct most and second most active contract data series
