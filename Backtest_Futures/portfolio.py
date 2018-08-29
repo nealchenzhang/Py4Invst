@@ -9,13 +9,13 @@ import os
 import numpy as np
 import pandas as pd
 
-from Backtest_Engine_Futures.event import FillEvent, OrderEvent
-from Backtest_Engine_Futures.performance import create_sharpe_ratio, create_drawdowns
+from Backtest_Futures.event import FillEvent, OrderEvent
+from Backtest_Futures.performance import create_sharpe_ratio, create_drawdowns
 
 
 class Portfolio(object):
     """
-    The Portfolio class handles the positions and market
+    The FoF class handles the positions and market
     value of all instruments at a resolution of a "bar",
     i.e. secondly, minutely, 5-min, 30-min, 60 min or EOD.
 

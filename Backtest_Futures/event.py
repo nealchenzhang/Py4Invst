@@ -28,7 +28,7 @@ class MarketEvent(Event):
 class SignalEvent(Event):
     """
     Handles the event of sending a Signal from a Strategy object.
-    This is received by a Portfolio object and acted upon.
+    This is received by a FoF object and acted upon.
     """
     
     def __init__(self, strategy_id, symbol, datetime,

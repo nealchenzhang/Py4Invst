@@ -435,16 +435,18 @@ if __name__ == '__main__':
     test = CommodityAnalysis('RB', ['01', '05', '10'])
 
     # Raw Data with price, volume, and positions
-    df_RB = pd.read_csv('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/RB.csv')
-    # df_RB = pd.read_csv('/home/nealzc/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/RB.csv')
+    # df_RB = pd.read_csv('/home/nealzc1991/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/RB.csv')
+    df_RB = pd.read_csv('/home/nealzc/PycharmProjects/Py4Invst/Market_Analysis/Futures_Market/RB.csv')
     df_RB.set_index('Date', inplace=True)
+
+    df_RB = df_RB.loc['2017-01-01':'2018-01-01',:]
 
     # Construct most and second most active contract data series
     df_cc0 = test.continuous_contract(df_raw=df_RB, roll='Open_Interest')
     df_cc1 = test.second_continuous_contract(df_raw=df_RB)
 
     # For continuous contracts analysis, use df_adjusted_cc0
-    # df_adjusted_cc0 = test.continuous_contract(df_raw=df_RB, roll='Open_Interest', adjusted=True)
+    df_adjusted_cc0 = test.continuous_contract(df_raw=df_RB, roll='Open_Interest', adjustment=True)
 
     # Dates for last trading dates
     # last_dates = test.last_trading_date()
@@ -480,3 +482,26 @@ if __name__ == '__main__':
     # pickle.dump(df_cc0, pickle_file)
     # pickle_file.close()
 
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
+    import matplotlib.dates as mdates
+    import matplotlib.ticker as ticker
+
+    ### Plotting
+    months = mdates.MonthLocator(bymonth=range(1, 13), bymonthday=1, interval=1)
+    monthsFmt = mdates.DateFormatter('%m-%b')
+
+    fig, ax1 = plt.subplots(figsize=(15, 8))
+    ax1.plot_date(df_cc0.index, df_cc0.loc[:, 'RBcc0_p'], '-', color='#FFCC99', alpha=0.8)
+    ax1.plot_date(df_adjusted_cc0.index, df_adjusted_cc0.loc[:, 'RBcc0_p'], '-', color='#99CC99', alpha=0.8)
+
+    datemin = df_cc0.index[0]
+    datemax = df_cc0.index[-1]
+    ax1.set_xlim(datemin, datemax)
+    ax1.xaxis.set_major_locator(months)
+    ax1.xaxis.set_major_formatter(monthsFmt)
+    ax1.tick_params(which='major', length=0)
+
+    plt.title('RB price during 2017')
+    ax1.legend(loc='upper right', labels=['Unadjusted price', 'Adjusted price'])
+    plt.show()

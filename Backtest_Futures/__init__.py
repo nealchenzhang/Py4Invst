@@ -17,7 +17,7 @@
 ###############################################################################
 
 """
-Backtest_Engine_Futures includes:
+Backtest_Futures includes:
 
     backtest module -- backtest class
     data module -- datahandler class

@@ -56,7 +56,7 @@ class Backtest(object):
         Generates the trading instance objects from 
         their class types.
         """
-        print("Creating DataHandler, Strategy, Portfolio and ExecutionHandler")
+        print("Creating DataHandler, Strategy, FoF and ExecutionHandler")
         self.data_handler = self.data_handler_cls(self.events, self.dbname, self.symbol_list)
         self.strategy = self.strategy_cls(self.data_handler, self.events)
         self.portfolio = self.portfolio_cls(self.data_handler, self.events, self.start_date, 

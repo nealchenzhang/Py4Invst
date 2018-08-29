@@ -7,11 +7,11 @@ Created on Thu Aug 10 11:01:46 2017
 import os
 os.chdir('D:/Neal/Py4Invst')
 
-from Analyzers import Analyzer
+from Backtest_Futures.Analyzers import Analyzer
 
 x = Analyzer("D:/Neal/Quant/PythonProject/ValuesFile/values1.csv")
 
-from Analyzers import Draw_Down
+from Backtest_Futures.Analyzers import Draw_Down
 
 x = Draw_Down("D:/Neal/Quant/PythonProject/ValuesFile/values1.csv")
 
@@ -73,5 +73,4 @@ s.height = 768
 print(s.resolution)
 assert s.resolution == 786432, '1024 * 768 = %d ?' % s.resolution
 
-import re
 a = "D:/Neal/Quant/PythonProject/ValuesFile/values1.csv"

@@ -37,7 +37,7 @@ class Analyzer(object):
         portfolio returns:
     
         
-    Portfolio Attributes: 
+    FoF Attributes:
     ===========================================================================
         Normalized portfolio values
         Descriptive Statistics
@@ -64,7 +64,7 @@ class Analyzer(object):
 
         df_port["Normalized Value"].plot()
         plt.show()
-        # ======================Portfolio Attributes============================
+        # ======================FoF Attributes============================
         self.__start_date = df_port.index[0].strftime('%Y-%m-%d')
         self.__end_date = df_port.index[-1].strftime('%Y-%m-%d')
         self.__df_port = df_port
